@@ -7,6 +7,7 @@ use App\Enums\Status;
 use App\Models\PlanItem;
 use App\Models\PlanPeriod;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -60,18 +61,14 @@ class WeeklyReviewService
         }
 
         return DB::transaction(function () use ($period) {
-            $nextStart = Carbon::parse($period->starts_on)->addWeek();
-            $nextEnd = $nextStart->copy()->addDays(6);
+            $nextStart = CarbonImmutable::parse($period->starts_on)->addWeek();
+            $nextEnd = $nextStart->addDays(6);
 
-            $nextPeriod = PlanPeriod::firstOrCreate(
-                [
-                    'owner_id' => $period->owner_id,
-                    'kind' => PlanKind::Weekly,
-                    'starts_on' => $nextStart->toDateString(),
-                ],
-                [
-                    'ends_on' => $nextEnd->toDateString(),
-                ],
+            $nextPeriod = PlanPeriod::findOrCreateForOwner(
+                $period->owner_id,
+                PlanKind::Weekly,
+                $nextStart,
+                $nextEnd,
             );
 
             $period->items()

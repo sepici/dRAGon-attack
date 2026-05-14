@@ -65,16 +65,40 @@ class PlanPeriod extends Model
     {
         [$start, $end] = self::boundsFor($kind);
 
-        return self::firstOrCreate(
-            [
-                'owner_id' => $user->id,
-                'kind' => $kind,
-                'starts_on' => $start->toDateString(),
-            ],
-            [
-                'ends_on' => $end->toDateString(),
-            ],
-        );
+        return self::findOrCreateForOwner($user->id, $kind, $start, $end);
+    }
+
+    /**
+     * Lookup-or-create helper that's robust against the Eloquent date-cast
+     * quirk: `firstOrCreate` writes values via casts (so a 'date' column
+     * may be stored as 'YYYY-MM-DD HH:mm:ss' in some adapters) but matches
+     * the WHERE clause against the raw input ('YYYY-MM-DD'), causing the
+     * second call to miss the row and try to re-insert.
+     *
+     * We do an explicit `whereDate` lookup first, then a plain `create`.
+     */
+    public static function findOrCreateForOwner(
+        int $ownerId,
+        PlanKind $kind,
+        CarbonImmutable $startsOn,
+        CarbonImmutable $endsOn,
+    ): self {
+        $existing = self::query()
+            ->where('owner_id', $ownerId)
+            ->where('kind', $kind->value)
+            ->whereDate('starts_on', $startsOn->toDateString())
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        return self::create([
+            'owner_id' => $ownerId,
+            'kind' => $kind->value,
+            'starts_on' => $startsOn->toDateString(),
+            'ends_on' => $endsOn->toDateString(),
+        ]);
     }
 
     // ---------- Relationships ----------------------------------------------
