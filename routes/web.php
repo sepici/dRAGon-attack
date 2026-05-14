@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContactPersonController;
 use App\Http\Controllers\DeliverableController;
+use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use Illuminate\Support\Facades\Route;
@@ -44,6 +45,14 @@ Route::middleware(['auth', 'role:user'])->group(function () {
 
     // Deliverables — the master tracker table. project_id picks the parent.
     Route::resource('deliverables', DeliverableController::class);
+
+    // Plans (calendar-aligned: weekly = Mon-Sun, monthly = calendar month,
+    // quarterly = current month → end of month+2). Auto-created on first visit.
+    Route::prefix('plans')->name('plans.')->group(function () {
+        Route::get('weekly', [PlanController::class, 'weekly'])->name('weekly');
+        Route::get('monthly', [PlanController::class, 'monthly'])->name('monthly');
+        Route::get('quarterly', [PlanController::class, 'quarterly'])->name('quarterly');
+    });
 });
 
 // ---------------------------------------------------------------------------

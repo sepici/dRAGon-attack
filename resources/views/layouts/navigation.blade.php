@@ -34,7 +34,27 @@
                         <x-nav-link :href="route('deliverables.index')" :active="request()->routeIs('deliverables.*')">
                             {{ __('Deliverables') }}
                         </x-nav-link>
-                        {{-- M3+: Plans, Review, Reports --}}
+
+                        {{-- Plans submenu (Weekly / Monthly / Quarterly) --}}
+                        <div class="hidden sm:flex sm:items-center -my-px">
+                            <x-dropdown align="left" width="48">
+                                <x-slot name="trigger">
+                                    <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out
+                                        {{ request()->routeIs('plans.*') ? 'border-indigo-400 dark:border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700' }}">
+                                        {{ __('Plans') }}
+                                        <svg class="ms-1 fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </x-slot>
+                                <x-slot name="content">
+                                    <x-dropdown-link :href="route('plans.weekly')">{{ __('Weekly') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('plans.monthly')">{{ __('Monthly') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('plans.quarterly')">{{ __('Quarterly') }}</x-dropdown-link>
+                                </x-slot>
+                            </x-dropdown>
+                        </div>
+                        {{-- M4+: Review, Reports --}}
                     @elseif (Auth::user()->isViewer())
                         <x-nav-link :href="route('viewer.dashboard')" :active="request()->routeIs('viewer.dashboard')">
                             {{ __('Dashboard') }}
@@ -113,6 +133,16 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('deliverables.index')" :active="request()->routeIs('deliverables.*')">
                     {{ __('Deliverables') }}
+                </x-responsive-nav-link>
+                <div class="px-4 pt-2 text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500">Plans</div>
+                <x-responsive-nav-link :href="route('plans.weekly')" :active="request()->routeIs('plans.weekly')">
+                    {{ __('Weekly') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('plans.monthly')" :active="request()->routeIs('plans.monthly')">
+                    {{ __('Monthly') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('plans.quarterly')" :active="request()->routeIs('plans.quarterly')">
+                    {{ __('Quarterly') }}
                 </x-responsive-nav-link>
             @elseif (Auth::user()->isViewer())
                 <x-responsive-nav-link :href="route('viewer.dashboard')" :active="request()->routeIs('viewer.dashboard')">
