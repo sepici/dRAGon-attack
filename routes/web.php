@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,15 +32,12 @@ Route::middleware(['auth', 'role:user'])->group(function () {
 
 // ---------------------------------------------------------------------------
 // ADMIN role — user management only.
-// Real CRUD lands in M1d.
 // ---------------------------------------------------------------------------
 Route::middleware(['auth', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        Route::get('/users', function () {
-            return view('admin.users.index');
-        })->name('users.index');
+        Route::resource('users', AdminUserController::class);
     });
 
 // ---------------------------------------------------------------------------
