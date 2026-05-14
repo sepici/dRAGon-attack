@@ -11,6 +11,13 @@ class ContactPerson extends Model
 {
     use HasFactory;
 
+    /**
+     * Eloquent would otherwise pluralise this to `contact_people`
+     * ("person" → "people"). We named the table `contact_persons` in the
+     * migration, so pin it explicitly.
+     */
+    protected $table = 'contact_persons';
+
     protected $fillable = [
         'client_id',
         'first_name',
