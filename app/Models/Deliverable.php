@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Deliverable extends Model
 {
@@ -50,6 +51,12 @@ class Deliverable extends Model
     {
         return $this->belongsToMany(ContactPerson::class, 'deliverable_contacts')
             ->withTimestamps();
+    }
+
+    /** All plan_items (weekly/monthly/quarterly allocations) of this deliverable. */
+    public function planItems(): HasMany
+    {
+        return $this->hasMany(PlanItem::class);
     }
 
     // ---------- Convenience accessors --------------------------------------

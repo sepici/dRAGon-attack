@@ -82,4 +82,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Project::class, 'owner_id');
     }
+
+    public function planPeriods(): HasMany
+    {
+        return $this->hasMany(PlanPeriod::class, 'owner_id');
+    }
 }
