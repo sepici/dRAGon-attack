@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ContactPersonController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +30,12 @@ Route::middleware(['auth', 'role:user'])->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
+
+    // Clients + nested contact persons
+    Route::resource('clients', ClientController::class);
+    Route::resource('clients.contacts', ContactPersonController::class)
+        ->parameters(['contacts' => 'contact'])
+        ->only(['create', 'store', 'edit', 'update', 'destroy']);
 });
 
 // ---------------------------------------------------------------------------

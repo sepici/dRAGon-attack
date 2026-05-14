@@ -25,7 +25,10 @@
                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                             {{ __('Dashboard') }}
                         </x-nav-link>
-                        {{-- M2+ links land here: Clients, Projects, Deliverables, Plans, Review, Reports --}}
+                        <x-nav-link :href="route('clients.index')" :active="request()->routeIs('clients.*')">
+                            {{ __('Clients') }}
+                        </x-nav-link>
+                        {{-- M2c/d: Projects, Deliverables. M3+: Plans, Review, Reports --}}
                     @elseif (Auth::user()->isViewer())
                         <x-nav-link :href="route('viewer.dashboard')" :active="request()->routeIs('viewer.dashboard')">
                             {{ __('Dashboard') }}
@@ -95,6 +98,9 @@
             @elseif (Auth::user()->isUser())
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     {{ __('Dashboard') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('clients.index')" :active="request()->routeIs('clients.*')">
+                    {{ __('Clients') }}
                 </x-responsive-nav-link>
             @elseif (Auth::user()->isViewer())
                 <x-responsive-nav-link :href="route('viewer.dashboard')" :active="request()->routeIs('viewer.dashboard')">
