@@ -39,4 +39,22 @@ enum Status: string
             self::Blocked => 'bg-purple-600 text-white',
         };
     }
+
+    /**
+     * Roll up a collection of statuses into a single worst-of-children
+     * status. Used to derive a Project's status from its Deliverables, and
+     * (later) a monthly/quarterly plan's status from its weekly items.
+     *
+     * Priority order (worst first): R > B > A > G. Empty input → R, on the
+     * grounds that nothing-delivered is the default Red, per Andrew's framing.
+     */
+    public static function rollup(iterable $statuses): self
+    {
+        $set = collect($statuses);
+        if ($set->contains(self::Red)) return self::Red;
+        if ($set->contains(self::Blocked)) return self::Blocked;
+        if ($set->contains(self::Amber)) return self::Amber;
+        if ($set->contains(self::Green)) return self::Green;
+        return self::Red;
+    }
 }

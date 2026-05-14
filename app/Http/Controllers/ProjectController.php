@@ -26,16 +26,25 @@ class ProjectController extends Controller
     {
         $user = auth()->user();
 
+        // Eager-load deliverables so the computed Project::status accessor
+        // doesn't trigger N+1 queries when rendering chips.
+        $with = ['client', 'deliverables:id,project_id,status'];
+        if ($user->isViewer()) {
+            $with[] = 'owner';
+        }
+
+        $query = Project::with($with)->orderBy('name');
+
         $projects = $user->isViewer()
-            ? Project::with('client', 'owner')->orderBy('name')->get()
-            : $user->projects()->with('client')->orderBy('name')->get();
+            ? $query->get()
+            : $query->where('owner_id', $user->id)->get();
 
         return view('projects.index', compact('projects'));
     }
 
     public function create(): View
     {
-        $project = new Project(['status' => 'R']);
+        $project = new Project();
         $clients = $this->clientsWithContacts();
 
         return view('projects.create', compact('project', 'clients'));

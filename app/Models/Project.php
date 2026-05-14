@@ -20,15 +20,32 @@ class Project extends Model
         'description',
         'deadline',
         'responsible_contact_id',
-        'status',
         'moscow',
     ];
 
     protected $casts = [
         'deadline' => 'date',
-        'status' => Status::class,
         'moscow' => Moscow::class,
     ];
+
+    /**
+     * Make the computed `status` show up when the model is serialised
+     * (e.g. JSON responses, future API endpoints).
+     */
+    protected $appends = ['status'];
+
+    // ---------- Computed status -------------------------------------------
+    // Project status = worst of its deliverables' statuses, per Andrew's
+    // framing (R > B > A > G). Stored nowhere — derived on read.
+
+    public function getStatusAttribute(): Status
+    {
+        return Status::rollup(
+            $this->relationLoaded('deliverables')
+                ? $this->deliverables->pluck('status')
+                : $this->deliverables()->pluck('status')
+        );
+    }
 
     // ---------- Relationships ----------------------------------------------
 

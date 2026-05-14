@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Enums\Moscow;
-use App\Enums\Status;
 use App\Models\ContactPerson;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -43,7 +42,6 @@ class StoreProjectRequest extends FormRequest
                     }
                 },
             ],
-            'status' => ['required', Rule::enum(Status::class)],
             'moscow' => ['nullable', Rule::enum(Moscow::class)],
         ];
     }

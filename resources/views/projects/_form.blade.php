@@ -96,35 +96,24 @@
         </div>
     </div>
 
-    {{-- Status + MoSCoW --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-            <x-input-label for="status" :value="__('Status')" />
-            <select id="status" name="status" required
-                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
-                @foreach (\App\Enums\Status::cases() as $s)
-                    <option value="{{ $s->value }}"
-                        @selected(old('status', $project->status?->value ?? 'R') === $s->value)>
-                        {{ $s->value }} — {{ $s->label() }}
-                    </option>
-                @endforeach
-            </select>
-            <x-input-error class="mt-2" :messages="$errors->get('status')" />
-        </div>
-        <div>
-            <x-input-label for="moscow" :value="__('MoSCoW priority (optional)')" />
-            <select id="moscow" name="moscow"
-                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
-                <option value="">— Not set —</option>
-                @foreach (\App\Enums\Moscow::cases() as $m)
-                    <option value="{{ $m->value }}"
-                        @selected(old('moscow', $project->moscow?->value) === $m->value)>
-                        {{ $m->value }} — {{ $m->label() }}
-                    </option>
-                @endforeach
-            </select>
-            <x-input-error class="mt-2" :messages="$errors->get('moscow')" />
-        </div>
+    {{-- MoSCoW (Status is derived from deliverables, not entered here) --}}
+    <div>
+        <x-input-label for="moscow" :value="__('MoSCoW priority (optional)')" />
+        <select id="moscow" name="moscow"
+            class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+            <option value="">— Not set —</option>
+            @foreach (\App\Enums\Moscow::cases() as $m)
+                <option value="{{ $m->value }}"
+                    @selected(old('moscow', $project->moscow?->value) === $m->value)>
+                    {{ $m->value }} — {{ $m->label() }}
+                </option>
+            @endforeach
+        </select>
+        <x-input-error class="mt-2" :messages="$errors->get('moscow')" />
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            The project's RAG status is derived automatically — worst of all its deliverables' statuses.
+            Set the status on individual deliverables instead.
+        </p>
     </div>
 
     <div class="flex items-center justify-end gap-3">
