@@ -1,0 +1,47 @@
+# Laravel
+/vendor
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/bootstrap/cache/*.php
+.phpunit.cache
+.phpunit.result.cache
+
+# Env + secrets
+.env
+.env.backup
+.env.production
+.env.*.local
+auth.json
+
+# Editor / OS
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+/storage/logs/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local Homestead / Sail
+/.homestead
+Homestead.json
+Homestead.yaml
+.vagrant
+
+# Generated PDFs (keep in storage on the server, not in repo)
+/storage/app/reports/*.pdf
+
+# Cloudways deploy artifacts
+.cloudways/
