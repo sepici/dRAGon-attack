@@ -92,8 +92,8 @@
             </div>
 
             {{-- Deliverables --}}
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="px-6 py-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+            <div>
+                <div class="flex items-center justify-between mb-2">
                     <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Deliverables</h3>
                     @can('update', $project)
                         <a href="{{ route('deliverables.create', ['project' => $project->id]) }}">
@@ -101,58 +101,11 @@
                         </a>
                     @endcan
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-900/50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target&nbsp;(d)</th>
-                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Spent&nbsp;(d)</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deadline</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">MoSCoW</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">&nbsp;</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            @forelse ($project->deliverables as $deliverable)
-                                <tr>
-                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                                        <a href="{{ route('deliverables.show', $deliverable) }}" class="hover:underline">
-                                            {{ $deliverable->name }}
-                                        </a>
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">{{ number_format((float) $deliverable->target_days, 1) }}</td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">{{ number_format((float) $deliverable->days_spent, 1) }}</td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $deliverable->deadline ? $deliverable->deadline->format('d M') : '—' }}</td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
-                                        @if ($deliverable->moscow)
-                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {{ $deliverable->moscow->chipClasses() }}">{{ $deliverable->moscow->value }}</span>
-                                        @else
-                                            <span class="text-gray-400">—</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
-                                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {{ $deliverable->status->chipClasses() }}">{{ $deliverable->status->value }}</span>
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
-                                        <a href="{{ route('deliverables.show', $deliverable) }}"
-                                           class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-200">Open</a>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                                        No deliverables yet.
-                                        @can('update', $project)
-                                            <a href="{{ route('deliverables.create', ['project' => $project->id]) }}" class="text-indigo-600 dark:text-indigo-400">Add one</a>.
-                                        @endcan
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                <x-plan-table
+                    :deliverables="$project->deliverables"
+                    :show-project="false"
+                    :show-client="false"
+                    empty-message="No deliverables yet for this project." />
             </div>
         </div>
     </div>
