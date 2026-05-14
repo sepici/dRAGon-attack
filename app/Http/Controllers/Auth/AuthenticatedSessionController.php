@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,6 +21,11 @@ class AuthenticatedSessionController extends Controller
 
     /**
      * Handle an incoming authentication request.
+     *
+     * Post-login redirect is role-driven (admin/user/viewer each land on a
+     * different route — see UserRole::landingRoute()). We deliberately do
+     * NOT use RouteServiceProvider::HOME because that constant assumes a
+     * single shared landing page.
      */
     public function store(LoginRequest $request): RedirectResponse
     {
@@ -29,7 +33,9 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(RouteServiceProvider::HOME);
+        $landingRoute = $request->user()->role->landingRoute();
+
+        return redirect()->intended(route($landingRoute));
     }
 
     /**
