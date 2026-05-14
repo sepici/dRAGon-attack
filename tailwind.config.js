@@ -7,6 +7,9 @@ export default {
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
+        // Pick up dynamic class names returned from PHP (e.g. enum chipClasses()
+        // in app/Enums/Status.php and app/Enums/Moscow.php).
+        './app/**/*.php',
     ],
 
     theme: {
