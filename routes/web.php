@@ -8,6 +8,7 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlanItemController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
 
@@ -66,6 +67,11 @@ Route::middleware(['auth', 'role:user'])->group(function () {
     Route::get('review', [ReviewController::class, 'show'])->name('review.show');
     Route::post('review', [ReviewController::class, 'store'])->name('review.store');
     Route::post('review/roll-forward', [ReviewController::class, 'rollForward'])->name('review.roll-forward');
+
+    // Weekly PDF reports
+    Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::post('reports/generate', [ReportController::class, 'generate'])->name('reports.generate');
+    Route::get('reports/{report}/download', [ReportController::class, 'download'])->name('reports.download');
 });
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,38 @@
+{{-- Re-used by the three plan sections of the weekly PDF report. --}}
+<table>
+    <thead>
+        <tr>
+            <th>Deliverable</th>
+            <th>Project / Client</th>
+            <th class="num">Target</th>
+            <th class="num">Allocated</th>
+            <th class="num">Spent</th>
+            <th>Deadline</th>
+            <th class="center">MoSCoW</th>
+            <th class="center">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach ($items as $item)
+            @php $d = $item->deliverable; @endphp
+            <tr>
+                <td>{{ $d->name }}</td>
+                <td>{{ $d->project->name }}<br><span style="color:#888; font-size:8pt;">{{ $d->project->client->legal_name }}</span></td>
+                <td class="num">{{ number_format((float) $d->target_days, 1) }}</td>
+                <td class="num">{{ number_format((float) $item->allocated_days, 1) }}</td>
+                <td class="num">{{ number_format((float) $d->days_spent, 1) }}</td>
+                <td>{{ $d->deadline ? $d->deadline->format('d M') : '—' }}</td>
+                <td class="center">
+                    @if ($d->moscow)
+                        <span class="chip chip-{{ $d->moscow->value }}">{{ $d->moscow->value }}</span>
+                    @else
+                        —
+                    @endif
+                </td>
+                <td class="center">
+                    <span class="chip chip-{{ $d->status->value }}">{{ $d->status->value }}</span>
+                </td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>

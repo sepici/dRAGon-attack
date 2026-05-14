@@ -87,4 +87,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(PlanPeriod::class, 'owner_id');
     }
+
+    public function reports(): HasMany
+    {
+        return $this->hasMany(Report::class, 'owner_id');
+    }
 }
