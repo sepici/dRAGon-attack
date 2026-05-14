@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PlanKind;
+use App\Models\Deliverable;
 use App\Models\PlanPeriod;
 use Illuminate\View\View;
 
@@ -31,33 +32,34 @@ class PlanController extends Controller
         return $this->show(PlanKind::Quarterly);
     }
 
-    /**
-     * Render the plan page for the current period of the given kind.
-     * Auto-creates the period on first visit (idempotent).
-     */
     private function show(PlanKind $kind): View
     {
         $user = auth()->user();
         $period = PlanPeriod::findOrCreateCurrentFor($user, $kind);
 
-        // Items with their deliverable + project + client preloaded so the
-        // shared <x-plan-table> doesn't N+1 when rendering chips/links.
+        // Editable plan items (with their deliverable + project + client).
+        // Ad-hoc items (deliverable_id NULL) appear during review (M4), not
+        // here on the planning view.
         $items = $period->items()
+            ->whereNotNull('deliverable_id')
             ->with(['deliverable.project.client'])
             ->get();
 
-        // For now, the plan-table only renders deliverable-backed items.
-        // Ad-hoc items (deliverable_id IS NULL) come into play during the
-        // weekly review (M4); we ignore them in the planning views.
-        $deliverableItems = $items->whereNotNull('deliverable_id');
-        $deliverables = $deliverableItems->pluck('deliverable')->filter();
-        $allocations = $deliverableItems->pluck('allocated_days', 'deliverable_id')->all();
+        // Deliverables the user owns but hasn't yet added to this period —
+        // populate the "Add to plan" dropdown with these.
+        $allocatedDeliverableIds = $items->pluck('deliverable_id')->all();
+        $availableDeliverables = Deliverable::query()
+            ->whereHas('project', fn ($q) => $q->where('owner_id', $user->id))
+            ->whereNotIn('id', $allocatedDeliverableIds)
+            ->with('project.client')
+            ->orderBy('name')
+            ->get();
 
         return view('plans.show', [
             'period' => $period,
             'kind' => $kind,
-            'deliverables' => $deliverables,
-            'allocations' => $allocations,
+            'items' => $items,
+            'availableDeliverables' => $availableDeliverables,
             'totalAllocated' => $period->totalAllocated(),
             'capacity' => $period->capacity(),
             'overUnder' => $period->overUnder(),

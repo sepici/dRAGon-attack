@@ -5,6 +5,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContactPersonController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PlanItemController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use Illuminate\Support\Facades\Route;
@@ -53,6 +54,12 @@ Route::middleware(['auth', 'role:user'])->group(function () {
         Route::get('monthly', [PlanController::class, 'monthly'])->name('monthly');
         Route::get('quarterly', [PlanController::class, 'quarterly'])->name('quarterly');
     });
+
+    // Individual allocation rows on those plans. Flat routes (plan_item id
+    // is unique across all periods/kinds).
+    Route::post('plan-items', [PlanItemController::class, 'store'])->name('plan-items.store');
+    Route::put('plan-items/{plan_item}', [PlanItemController::class, 'update'])->name('plan-items.update');
+    Route::delete('plan-items/{plan_item}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
 });
 
 // ---------------------------------------------------------------------------
