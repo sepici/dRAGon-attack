@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContactPersonController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlanItemController;
@@ -33,9 +34,7 @@ Route::get('/', function () {
 // here in M2+.
 // ---------------------------------------------------------------------------
 Route::middleware(['auth', 'role:user'])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     // Clients + nested contact persons
     Route::resource('clients', ClientController::class);
