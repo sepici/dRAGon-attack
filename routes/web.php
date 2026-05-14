@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContactPersonController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -36,6 +37,9 @@ Route::middleware(['auth', 'role:user'])->group(function () {
     Route::resource('clients.contacts', ContactPersonController::class)
         ->parameters(['contacts' => 'contact'])
         ->only(['create', 'store', 'edit', 'update', 'destroy']);
+
+    // Projects (flat resource — projects.client_id picks the parent client)
+    Route::resource('projects', ProjectController::class);
 });
 
 // ---------------------------------------------------------------------------
