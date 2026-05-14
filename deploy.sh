@@ -1,7 +1,15 @@
 #!/bin/bash
 set -e
+
 echo "→ Installing PHP dependencies (production)..."
 composer install --no-dev --optimize-autoloader --no-interaction
+
+echo "→ Installing frontend dependencies..."
+npm ci --omit=dev
+
+echo "→ Building frontend assets..."
+npm run build
+
 echo "→ Running migrations..."
 php artisan migrate --force
 
