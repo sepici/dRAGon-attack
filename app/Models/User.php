@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\UserRole;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -66,5 +67,19 @@ class User extends Authenticatable
     public function isViewer(): bool
     {
         return $this->role === UserRole::Viewer;
+    }
+
+    // ---------- Tracker data relationships ---------------------------------
+    // Each user owns their own clients/projects. Deliverables are reached
+    // through projects (no direct user FK).
+
+    public function clients(): HasMany
+    {
+        return $this->hasMany(Client::class, 'owner_id');
+    }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'owner_id');
     }
 }
