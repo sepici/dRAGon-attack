@@ -54,7 +54,10 @@
                                 </x-slot>
                             </x-dropdown>
                         </div>
-                        {{-- M4+: Review, Reports --}}
+                        <x-nav-link :href="route('review.show')" :active="request()->routeIs('review.*')">
+                            {{ __('Review') }}
+                        </x-nav-link>
+                        {{-- M5: Reports --}}
                     @elseif (Auth::user()->isViewer())
                         <x-nav-link :href="route('viewer.dashboard')" :active="request()->routeIs('viewer.dashboard')">
                             {{ __('Dashboard') }}
@@ -143,6 +146,9 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('plans.quarterly')" :active="request()->routeIs('plans.quarterly')">
                     {{ __('Quarterly') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('review.show')" :active="request()->routeIs('review.*')">
+                    {{ __('Review') }}
                 </x-responsive-nav-link>
             @elseif (Auth::user()->isViewer())
                 <x-responsive-nav-link :href="route('viewer.dashboard')" :active="request()->routeIs('viewer.dashboard')">

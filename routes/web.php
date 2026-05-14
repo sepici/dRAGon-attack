@@ -8,6 +8,7 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlanItemController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -60,6 +61,11 @@ Route::middleware(['auth', 'role:user'])->group(function () {
     Route::post('plan-items', [PlanItemController::class, 'store'])->name('plan-items.store');
     Route::put('plan-items/{plan_item}', [PlanItemController::class, 'update'])->name('plan-items.update');
     Route::delete('plan-items/{plan_item}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
+
+    // End-of-week review
+    Route::get('review', [ReviewController::class, 'show'])->name('review.show');
+    Route::post('review', [ReviewController::class, 'store'])->name('review.store');
+    Route::post('review/roll-forward', [ReviewController::class, 'rollForward'])->name('review.roll-forward');
 });
 
 // ---------------------------------------------------------------------------
