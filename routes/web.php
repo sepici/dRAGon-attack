@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContactPersonController;
+use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +41,9 @@ Route::middleware(['auth', 'role:user'])->group(function () {
 
     // Projects (flat resource — projects.client_id picks the parent client)
     Route::resource('projects', ProjectController::class);
+
+    // Deliverables — the master tracker table. project_id picks the parent.
+    Route::resource('deliverables', DeliverableController::class);
 });
 
 // ---------------------------------------------------------------------------
