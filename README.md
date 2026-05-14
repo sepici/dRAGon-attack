@@ -6,7 +6,7 @@ Built for personal use first; user authentication and roles are scaffolded so th
 
 ## Stack
 
-- **Backend:** PHP 8.2+, Laravel 11
+- **Backend:** PHP 8.1+, Laravel 10
 - **Database:** MySQL 8
 - **Frontend:** Blade templates, Tailwind CSS, Alpine.js for the small interactive bits
 - **PDF generation:** DomPDF (synchronous, fast enough for one weekly report)

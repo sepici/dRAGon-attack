@@ -21,11 +21,11 @@ Those points shaped the schema and the workflow below.
 
 ## Stack
 
-- PHP 8.2+, Laravel 11
+- PHP 8.1+, Laravel 10
 - MySQL 8 (Cloudways managed)
 - Blade templates + Tailwind CSS + Alpine.js
 - DomPDF for PDF reports (synchronous; one report < 2s)
-- Laravel Breeze for auth scaffolding
+- Laravel Breeze 1.x for auth scaffolding
 
 ## Roles (strict separation)
 
@@ -33,15 +33,15 @@ One role per user, enforced at the middleware layer. Each role lands on a differ
 
 | Role | Lands on | Can do |
 |---|---|---|
-| admin | `/admin/users` | Create/edit/delete users, assign viewers to users. Nothing else. |
+| admin | `/admin/users` | Create/edit/delete users. Nothing else. |
 | user | `/dashboard` | Full CRUD on their own clients/projects/deliverables/plans/reports. Sees only their own data (`owner_id = auth()->id()`). |
-| viewer | `/viewer/dashboard` | Read-only on the data of the user(s) they're assigned to. No edit affordances rendered. |
+| viewer | `/viewer/dashboard` | Read-only access to ALL users' tracker data. No edit affordances rendered. |
 
 Admins do **not** also have user privileges — if the admin wants to use the tracker, they create a separate user account for that. This was an explicit decision (see chat log, May 2026): different post-login experiences should not be mixed.
 
 ## Database schema
 
-10 tables. All FKs use `ON DELETE RESTRICT` unless noted.
+9 tables. All FKs use `ON DELETE RESTRICT` unless noted.
 
 ### `users`
 ```
@@ -49,7 +49,7 @@ id              bigint PK
 name            varchar(120)
 email           varchar(180) unique
 password        varchar(255)
-role            enum('admin','user','viewer') NOT NULL
+role            enum('admin','user','viewer') NOT NULL  default 'user'
 weekly_capacity_days   decimal(3,1)  default 5.0
 monthly_capacity_days  decimal(4,1)  default 20.0
 email_verified_at      timestamp NULL
@@ -57,14 +57,9 @@ remember_token         varchar(100) NULL
 created_at, updated_at
 ```
 
-### `viewer_assignments`
-```
-id              bigint PK
-viewer_user_id  bigint FK -> users(id)  ON DELETE CASCADE
-target_user_id  bigint FK -> users(id)  ON DELETE CASCADE
-created_at, updated_at
-UNIQUE (viewer_user_id, target_user_id)
-```
+> Viewers currently see all users' data — no per-target scoping. If we later
+> need restriction, add a `viewer_assignments` pivot (viewer_user_id ↔
+> target_user_id) and filter queries on it.
 
 ### `clients`
 ```
@@ -188,7 +183,6 @@ GUEST
 
 ADMIN (role=admin)
   /admin/users                       list, add, edit, delete users
-  /admin/users/{id}/viewer-targets   manage which users this viewer can see
 
 USER (role=user)
   /dashboard                          capacity vs scope summary + counts by status
@@ -209,10 +203,10 @@ USER (role=user)
   /settings                            change own password, capacity defaults
 
 VIEWER (role=viewer)
-  /viewer/dashboard                    pick a target user (if assigned to >1)
-  /viewer/{target_user_id}/dashboard
-  /viewer/{target_user_id}/plans/{kind}
-  /viewer/{target_user_id}/reports
+  /viewer/dashboard                    read-only dashboard across all users
+  /viewer/users/{id}                   drill into a specific user's tracker
+  /viewer/users/{id}/plans/{kind}
+  /viewer/users/{id}/reports
 ```
 
 ## Shared table component

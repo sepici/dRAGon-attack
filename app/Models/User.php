@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -21,6 +22,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'weekly_capacity_days',
+        'monthly_capacity_days',
     ];
 
     /**
@@ -41,5 +45,26 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'role' => UserRole::class,
+        'weekly_capacity_days' => 'decimal:1',
+        'monthly_capacity_days' => 'decimal:1',
     ];
+
+    // ---------- Role helpers ------------------------------------------------
+    // One role per user. Use these instead of comparing strings directly.
+
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::Admin;
+    }
+
+    public function isUser(): bool
+    {
+        return $this->role === UserRole::User;
+    }
+
+    public function isViewer(): bool
+    {
+        return $this->role === UserRole::Viewer;
+    }
 }
