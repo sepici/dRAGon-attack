@@ -1,9 +1,12 @@
 # Laravel
 /vendor
 /node_modules
-/public/build
 /public/hot
 /public/storage
+# /public/build is intentionally tracked — we build assets locally and ship
+# the dist/ to the server, since Cloudways' bundled npm chokes on our
+# package-lock.json v3 format. Remove this comment and re-ignore /public/build
+# once we have a working server-side build pipeline (e.g. GitHub Action).
 /storage/*.key
 /storage/pail
 /bootstrap/cache/*.php
