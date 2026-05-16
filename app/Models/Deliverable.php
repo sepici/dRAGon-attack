@@ -60,6 +60,12 @@ class Deliverable extends Model
         return $this->hasMany(PlanItem::class);
     }
 
+    /** Every day-by-day log of work against this deliverable. */
+    public function timeLogs(): HasMany
+    {
+        return $this->hasMany(TimeLog::class);
+    }
+
     // ---------- Convenience accessors --------------------------------------
 
     /** True when this deliverable has been signed off (completed_at set). */

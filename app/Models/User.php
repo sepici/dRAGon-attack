@@ -94,6 +94,12 @@ class User extends Authenticatable
         return $this->hasMany(Report::class, 'owner_id');
     }
 
+    /** All day-by-day work logs this user has entered (cross-deliverable). */
+    public function timeLogs(): HasMany
+    {
+        return $this->hasMany(TimeLog::class, 'owner_id');
+    }
+
     // ---------- Capacity helpers (derived days view) -----------------------
 
     public function getWeeklyCapacityDaysAttribute(): float
