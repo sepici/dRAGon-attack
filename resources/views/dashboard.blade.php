@@ -56,13 +56,13 @@
                        class="block bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 hover:ring-2 hover:ring-indigo-500/30 transition">
                         <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ $card['label'] }}</p>
                         <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
-                            {{ TimeUnits::formatHoursWithDays($allocated) }}<span class="text-base font-medium text-gray-500 dark:text-gray-400"> / {{ TimeUnits::formatHoursWithDays($cap) }} planned</span>
+                            {{ TimeUnits::formatDaysWithHours($allocated) }}<span class="text-base font-medium text-gray-500 dark:text-gray-400"> / {{ TimeUnits::formatDaysWithHours($cap) }} planned</span>
                         </p>
                         <p class="mt-1 text-sm {{ $overClass }} font-medium">
                             @if ($over > 0)
-                                +{{ TimeUnits::formatHoursWithDays($over) }} over capacity
+                                +{{ TimeUnits::formatDaysWithHours($over) }} over capacity
                             @elseif ($over < 0)
-                                {{ TimeUnits::formatHoursWithDays(abs($over)) }} headroom
+                                {{ TimeUnits::formatDaysWithHours(abs($over)) }} headroom
                             @else
                                 Exactly to capacity
                             @endif

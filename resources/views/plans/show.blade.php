@@ -52,7 +52,7 @@
                             Capacity ({{ $kind->thisPeriodLabel() }})
                         </dt>
                         <dd class="mt-1 text-3xl font-bold text-gray-900 dark:text-gray-100">
-                            {{ TimeUnits::formatHoursWithDays($capacity) }}
+                            {{ TimeUnits::formatDaysWithHours($capacity) }}
                         </dd>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             @if ($kind === \App\Enums\PlanKind::Quarterly)
@@ -67,7 +67,7 @@
                             Planned (allocated)
                         </dt>
                         <dd class="mt-1 text-3xl font-bold text-gray-900 dark:text-gray-100">
-                            {{ TimeUnits::formatHoursWithDays($totalAllocated) }}
+                            {{ TimeUnits::formatDaysWithHours($totalAllocated) }}
                         </dd>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             Sum across {{ $items->count() }} deliverable(s) on this plan.
@@ -81,14 +81,14 @@
                             @if ($overUnder == 0)
                                 Even
                             @else
-                                {{ $overUnder > 0 ? '+' : '' }}{{ TimeUnits::formatHoursWithDays($overUnder) }}
+                                {{ $overUnder > 0 ? '+' : '' }}{{ TimeUnits::formatDaysWithHours($overUnder) }}
                             @endif
                         </dd>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             @if ($overUnder > 0)
-                                {{ $overUnderLabel }} {{ TimeUnits::formatHoursWithDays(abs($overUnder)) }} — push items to backlog or extend the deadline.
+                                {{ $overUnderLabel }} {{ TimeUnits::formatDaysWithHours(abs($overUnder)) }} — push items to backlog or extend the deadline.
                             @elseif ($overUnder < 0)
-                                You have {{ TimeUnits::formatHoursWithDays(abs($overUnder)) }} of headroom.
+                                You have {{ TimeUnits::formatDaysWithHours(abs($overUnder)) }} of headroom.
                             @else
                                 Allocated exactly to capacity.
                             @endif
@@ -109,8 +109,8 @@
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deliverable</th>
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Project</th>
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Client</th>
-                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Target</th>
-                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours">Allocated&nbsp;(h)</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="days (hours)">Target</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="days">Allocated&nbsp;(d)</th>
                                 <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Spent</th>
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deadline</th>
                                 <th class="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">MoSCoW</th>
@@ -130,15 +130,16 @@
                                     </td>
                                     <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $d->project->client->legal_name }}</td>
                                     <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                                        {{ TimeUnits::formatHoursWithDays($d->target_hours) }}
+                                        {{ TimeUnits::formatDaysWithHours($d->target_hours) }}
                                     </td>
                                     <td class="px-3 py-3 whitespace-nowrap text-sm text-right">
                                         <form method="POST" action="{{ route('plan-items.update', $item) }}" class="flex items-center justify-end gap-1">
                                             @csrf
                                             @method('PUT')
-                                            <input type="number" name="allocated_hours" step="0.5" min="0"
-                                                value="{{ number_format((float) $item->allocated_hours, 1) }}"
+                                            <input type="number" name="allocated_days" step="0.5" min="0"
+                                                value="{{ rtrim(rtrim(number_format(TimeUnits::daysFromHours($item->allocated_hours), 1), '0'), '.') }}"
                                                 class="w-20 text-right text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">d</span>
                                             <button class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-200">
                                                 Save
                                             </button>
@@ -182,7 +183,7 @@
                             <tfoot class="bg-gray-50 dark:bg-gray-900/30 font-medium">
                                 <tr>
                                     <td class="px-3 py-2 text-right text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400" colspan="4">Totals</td>
-                                    <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($totalAllocated) }}</td>
+                                    <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{{ TimeUnits::formatDaysWithHours($totalAllocated) }}</td>
                                     <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($items->sum(fn ($it) => (float) $it->hours_spent)) }}</td>
                                     <td colspan="4">&nbsp;</td>
                                 </tr>
@@ -208,12 +209,38 @@
                             @endif
                         </p>
                     @else
-                        <form method="POST" action="{{ route('plan-items.store') }}" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                        @php
+                            // Pre-fill suggestion = min(remaining target, weekly capacity), in days.
+                            // Alpine reactively updates when the deliverable changes; the
+                            // PHP-side default is just the smallest "sensible" number so
+                            // the form starts populated.
+                            $weeklyCapDays = (float) auth()->user()->weekly_capacity_hours / 8.0;
+                            $remainingByDeliverable = $availableDeliverables->mapWithKeys(fn ($d) => [
+                                $d->id => max(0.0, ($d->target_hours - $d->hours_spent) / 8.0),
+                            ]);
+                            $defaultDays = min(1.0, $weeklyCapDays);
+                        @endphp
+                        <form method="POST" action="{{ route('plan-items.store') }}"
+                              x-data="{
+                                  deliverableId: '',
+                                  weeklyCapDays: {{ $weeklyCapDays }},
+                                  remaining: @js($remainingByDeliverable),
+                                  allocatedDays: '{{ old('allocated_days', $defaultDays) }}',
+                                  onChange() {
+                                      if (!this.deliverableId) return;
+                                      const rem = this.remaining[this.deliverableId] ?? 0;
+                                      const suggest = Math.min(rem, this.weeklyCapDays);
+                                      // Round to nearest 0.5 to match step on the input.
+                                      this.allocatedDays = (Math.round(suggest * 2) / 2).toFixed(1);
+                                  }
+                              }"
+                              class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                             @csrf
                             <input type="hidden" name="plan_period_id" value="{{ $period->id }}">
                             <div class="sm:col-span-2">
                                 <x-input-label for="deliverable_id" :value="__('Deliverable')" />
                                 <select id="deliverable_id" name="deliverable_id" required
+                                    x-model="deliverableId" @change="onChange()"
                                     class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
                                     <option value="">— Pick a deliverable —</option>
                                     @foreach ($availableDeliverables as $d)
@@ -225,15 +252,15 @@
                                 <x-input-error class="mt-2" :messages="$errors->get('deliverable_id')" />
                             </div>
                             <div>
-                                <x-input-label for="allocated_hours" :value="__('Hours')" />
+                                <x-input-label for="allocated_days" :value="__('Days')" />
                                 <div class="flex items-center gap-2 mt-1">
-                                    <x-text-input id="allocated_hours" name="allocated_hours" type="number"
+                                    <x-text-input id="allocated_days" name="allocated_days" type="number"
                                         step="0.5" min="0" class="w-24 text-right"
-                                        value="{{ old('allocated_hours', 8.0) }}" required />
+                                        x-model="allocatedDays" required />
                                     <x-primary-button>{{ __('Add') }}</x-primary-button>
                                 </div>
-                                <x-input-error class="mt-2" :messages="$errors->get('allocated_hours')" />
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">8h = 1 day.</p>
+                                <x-input-error class="mt-2" :messages="$errors->get('allocated_days')" />
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Pre-fills with min(remaining, weekly capacity). 1 day = 8 hours.</p>
                             </div>
                         </form>
                     @endif

@@ -30,7 +30,7 @@ class DeliverableCrudTest extends TestCase
             'project_id' => $project->id,
             'name' => 'Legacy Score Interface',
             'description' => 'Live in staging, signed off by client',
-            'target_hours' => 16.0,
+            'target_days' => 2.0,
             'status' => 'A',
             'moscow' => 'M',
             'contact_ids' => [$c1->id, $c2->id],
@@ -39,12 +39,13 @@ class DeliverableCrudTest extends TestCase
         $deliverable = Deliverable::where('name', 'Legacy Score Interface')->firstOrFail();
         $response->assertRedirect(route('deliverables.show', $deliverable));
 
+        // Form took days (2.0); storage is hours (16.0).
         $this->assertEquals(16.0, (float) $deliverable->target_hours);
         $this->assertSame(Status::Amber, $deliverable->status);
         $this->assertCount(2, $deliverable->contactPersons);
     }
 
-    public function test_target_hours_must_be_in_half_hour_increments(): void
+    public function test_target_days_must_be_in_half_day_increments(): void
     {
         $user = User::factory()->create();
         $project = Project::factory()->create(['owner_id' => $user->id]);
@@ -54,11 +55,11 @@ class DeliverableCrudTest extends TestCase
             ->post('/deliverables', [
                 'project_id' => $project->id,
                 'name' => 'Bad value',
-                'target_hours' => 1.3, // not a 0.5 multiple
+                'target_days' => 1.3, // not a 0.5 multiple
                 'status' => 'R',
             ]);
 
-        $response->assertSessionHasErrors('target_hours');
+        $response->assertSessionHasErrors('target_days');
     }
 
     public function test_contact_must_belong_to_projects_client(): void
@@ -77,7 +78,7 @@ class DeliverableCrudTest extends TestCase
             ->post('/deliverables', [
                 'project_id' => $projectA->id,
                 'name' => 'Wrong contact',
-                'target_hours' => 8.0,
+                'target_days' => 1.0,
                 'status' => 'R',
                 'contact_ids' => [$contactInB->id],
             ]);
@@ -101,7 +102,7 @@ class DeliverableCrudTest extends TestCase
         $this->actingAs($user)->put("/deliverables/{$deliverable->id}", [
             'project_id' => $project->id,
             'name' => $deliverable->name,
-            'target_hours' => $deliverable->target_hours,
+            'target_days' => $deliverable->target_days, // derived days accessor
             'status' => 'R',
             'contact_ids' => [$c2->id], // swap c1 → c2
         ]);
@@ -122,7 +123,7 @@ class DeliverableCrudTest extends TestCase
             ->post('/deliverables', [
                 'project_id' => $projectOfB->id,
                 'name' => 'Should fail',
-                'target_hours' => 8.0,
+                'target_days' => 1.0,
                 'status' => 'R',
             ]);
 

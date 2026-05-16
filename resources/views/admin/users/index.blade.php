@@ -62,8 +62,8 @@
                                             {{ $user->role->label() }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">{{ \App\Support\TimeUnits::formatHoursWithDays($user->weekly_capacity_hours) }}</td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">{{ \App\Support\TimeUnits::formatHoursWithDays($user->monthly_capacity_hours) }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">{{ \App\Support\TimeUnits::formatDaysWithHours($user->weekly_capacity_hours) }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">{{ \App\Support\TimeUnits::formatDaysWithHours($user->monthly_capacity_hours) }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
                                         <a href="{{ route('admin.users.edit', $user) }}"
                                            class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-200">

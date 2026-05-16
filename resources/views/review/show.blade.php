@@ -75,7 +75,7 @@
                                     <th class="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Done</th>
                                     <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deliverable</th>
                                     <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Client</th>
-                                    <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Allocated</th>
+                                    <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="days (hours)">Allocated</th>
                                     <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days) — derived from journal">Spent</th>
                                     <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
                                 </tr>
@@ -97,7 +97,7 @@
                                         </td>
                                         <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $d->project->client->legal_name }}</td>
                                         <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                                            {{ TimeUnits::formatHoursWithDays($item->allocated_hours) }}
+                                            {{ TimeUnits::formatDaysWithHours($item->allocated_hours) }}
                                         </td>
                                         <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
                                             {{ TimeUnits::formatHoursWithDays($item->hours_spent) }}

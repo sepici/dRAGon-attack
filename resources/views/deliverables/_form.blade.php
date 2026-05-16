@@ -92,16 +92,21 @@
         <x-input-error class="mt-2" :messages="$errors->get('description')" />
     </div>
 
-    {{-- Target hours + Deadline. Hours spent is derived from the daily
-         journal (time_logs) — there's no input for it. --}}
+    {{-- Target days + Deadline. Spent comes from the daily journal — no
+         input for it. Days × 8 = hours; storage stays in hours. --}}
+    @php
+        $targetDaysOld = old('target_days', $deliverable->target_hours
+            ? \App\Support\TimeUnits::daysFromHours($deliverable->target_hours)
+            : '');
+    @endphp
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-            <x-input-label for="target_hours" :value="__('Target hours')" />
-            <x-text-input id="target_hours" name="target_hours" type="number"
+            <x-input-label for="target_days" :value="__('Target days')" />
+            <x-text-input id="target_days" name="target_days" type="number"
                 step="0.5" min="0" class="mt-1 block w-full"
-                :value="old('target_hours', $deliverable->target_hours ?? 0)" required />
-            <x-input-error class="mt-2" :messages="$errors->get('target_hours')" />
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">8h = 1 day. Half-hour increments. Spent hours come from the daily journal.</p>
+                :value="$targetDaysOld" required />
+            <x-input-error class="mt-2" :messages="$errors->get('target_days')" />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Half-day increments. 1 day = 8 hours. Spent hours come from the daily journal.</p>
         </div>
         <div>
             <x-input-label for="deadline" :value="__('Deadline (optional)')" />

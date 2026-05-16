@@ -45,12 +45,13 @@ class PlanItemCrudTest extends TestCase
             ->post('/plan-items', [
                 'plan_period_id' => $period->id,
                 'deliverable_id' => $deliverable->id,
-                'allocated_hours' => 20.0,
+                'allocated_days' => 2.5,
             ]);
 
         $response->assertRedirect();
         $item = PlanItem::where('plan_period_id', $period->id)->firstOrFail();
         $this->assertSame($deliverable->id, $item->deliverable_id);
+        // 2.5 days → 20h stored.
         $this->assertEqualsWithDelta(20.0, (float) $item->allocated_hours, 0.01);
     }
 
@@ -68,14 +69,14 @@ class PlanItemCrudTest extends TestCase
             ->post('/plan-items', [
                 'plan_period_id' => $period->id,
                 'deliverable_id' => $deliverable->id,
-                'allocated_hours' => 8.0,
+                'allocated_days' => 1.0,
             ]);
 
         $response->assertSessionHasErrors('deliverable_id');
         $this->assertSame(1, PlanItem::where('plan_period_id', $period->id)->count());
     }
 
-    public function test_allocated_hours_must_be_half_hour_increment(): void
+    public function test_allocated_days_must_be_half_day_increment(): void
     {
         [$user, $deliverable, $period] = $this->makeOwnedChain();
 
@@ -84,10 +85,10 @@ class PlanItemCrudTest extends TestCase
             ->post('/plan-items', [
                 'plan_period_id' => $period->id,
                 'deliverable_id' => $deliverable->id,
-                'allocated_hours' => 1.3, // not a 0.5 multiple
+                'allocated_days' => 1.3, // not a 0.5 multiple
             ]);
 
-        $response->assertSessionHasErrors('allocated_hours');
+        $response->assertSessionHasErrors('allocated_days');
     }
 
     public function test_cannot_add_deliverable_owned_by_someone_else(): void
@@ -103,7 +104,7 @@ class PlanItemCrudTest extends TestCase
             ->post('/plan-items', [
                 'plan_period_id' => $periodOfA->id,
                 'deliverable_id' => $deliverableOfB->id,
-                'allocated_hours' => 8.0,
+                'allocated_days' => 1.0,
             ]);
 
         $response->assertSessionHasErrors('deliverable_id');
@@ -125,13 +126,13 @@ class PlanItemCrudTest extends TestCase
             ->post('/plan-items', [
                 'plan_period_id' => $periodOfB->id, // someone else's period
                 'deliverable_id' => $deliverableA->id,
-                'allocated_hours' => 8.0,
+                'allocated_days' => 1.0,
             ]);
 
         $response->assertSessionHasErrors('plan_period_id');
     }
 
-    public function test_user_can_update_allocated_hours(): void
+    public function test_user_can_update_allocated_days(): void
     {
         [$user, $deliverable, $period] = $this->makeOwnedChain();
         $item = PlanItem::factory()->create([
@@ -142,8 +143,9 @@ class PlanItemCrudTest extends TestCase
 
         $this->actingAs($user)
             ->from('/plans/weekly')
-            ->put("/plan-items/{$item->id}", ['allocated_hours' => 28.0]);
+            ->put("/plan-items/{$item->id}", ['allocated_days' => 3.5]);
 
+        // 3.5 days → 28h stored.
         $this->assertEqualsWithDelta(28.0, (float) $item->fresh()->allocated_hours, 0.01);
     }
 
@@ -162,7 +164,7 @@ class PlanItemCrudTest extends TestCase
         ]);
 
         $response = $this->actingAs($userA)
-            ->put("/plan-items/{$item->id}", ['allocated_hours' => 800.0]);
+            ->put("/plan-items/{$item->id}", ['allocated_days' => 100.0]);
 
         $response->assertForbidden();
         $this->assertEqualsWithDelta(8.0, (float) $item->fresh()->allocated_hours, 0.01);

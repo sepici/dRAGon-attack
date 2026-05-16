@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Deliverable;
 use App\Models\PlanItem;
 use App\Models\PlanPeriod;
+use App\Support\TimeUnits;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,6 +14,16 @@ class StorePlanItemRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()->isUser();
+    }
+
+    /** Convert the days input → hours for storage. */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('allocated_days') && $this->input('allocated_days') !== '') {
+            $this->merge([
+                'allocated_hours' => TimeUnits::hoursFromDays((float) $this->input('allocated_days')),
+            ]);
+        }
     }
 
     public function rules(): array
@@ -51,9 +62,17 @@ class StorePlanItemRequest extends FormRequest
                 },
             ],
 
-            'allocated_hours' => [
-                'required', 'numeric', 'min:0', 'max:9999', 'multiple_of:0.5',
-            ],
+            'allocated_days' => ['required', 'numeric', 'min:0', 'max:250', 'multiple_of:0.5'],
+            'allocated_hours' => ['required', 'numeric', 'min:0', 'max:2000'],
         ];
+    }
+
+    public function validated($key = null, $default = null)
+    {
+        $data = parent::validated($key, $default);
+        if (is_array($data)) {
+            unset($data['allocated_days']);
+        }
+        return $data;
     }
 }

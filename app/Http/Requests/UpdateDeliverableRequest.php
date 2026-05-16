@@ -6,6 +6,7 @@ use App\Enums\Moscow;
 use App\Enums\Status;
 use App\Models\ContactPerson;
 use App\Models\Project;
+use App\Support\TimeUnits;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,6 +15,16 @@ class UpdateDeliverableRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('deliverable'));
+    }
+
+    /** See StoreDeliverableRequest::prepareForValidation. */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('target_days') && $this->input('target_days') !== '') {
+            $this->merge([
+                'target_hours' => TimeUnits::hoursFromDays((float) $this->input('target_days')),
+            ]);
+        }
     }
 
     public function rules(): array
@@ -25,7 +36,8 @@ class UpdateDeliverableRequest extends FormRequest
             ],
             'name' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string'],
-            'target_hours' => ['required', 'numeric', 'min:0', 'max:9999', 'multiple_of:0.5'],
+            'target_days' => ['required', 'numeric', 'min:0', 'max:250', 'multiple_of:0.5'],
+            'target_hours' => ['required', 'numeric', 'min:0', 'max:2000'],
             'deadline' => ['nullable', 'date'],
             'status' => ['required', Rule::enum(Status::class)],
             'moscow' => ['nullable', Rule::enum(Moscow::class)],
@@ -45,5 +57,14 @@ class UpdateDeliverableRequest extends FormRequest
                 },
             ],
         ];
+    }
+
+    public function validated($key = null, $default = null)
+    {
+        $data = parent::validated($key, $default);
+        if (is_array($data)) {
+            unset($data['target_days']);
+        }
+        return $data;
     }
 }

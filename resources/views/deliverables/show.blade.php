@@ -56,7 +56,7 @@
                     </div>
                     <div>
                         <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target</dt>
-                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($deliverable->target_hours) }}</dd>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ TimeUnits::formatDaysWithHours($deliverable->target_hours) }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Spent</dt>
@@ -64,7 +64,7 @@
                     </div>
                     <div>
                         <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Remaining</dt>
-                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($deliverable->remaining_hours) }}</dd>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ TimeUnits::formatDaysWithHours($deliverable->remaining_hours) }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">MoSCoW</dt>

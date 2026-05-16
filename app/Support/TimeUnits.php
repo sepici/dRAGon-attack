@@ -26,6 +26,8 @@ class TimeUnits
 
     /**
      * Display string like "12.5h (1.6d)". One decimal by default.
+     * Hours lead — use this for values that were *entered* in hours
+     * (spent / logged time), where seeing the hours number matters first.
      */
     public static function formatHoursWithDays(float|int|string|null $hours, int $decimals = 1): string
     {
@@ -36,6 +38,24 @@ class TimeUnits
             '%sh (%sd)',
             self::trim(number_format($h, $decimals)),
             self::trim(number_format($d, $decimals)),
+        );
+    }
+
+    /**
+     * Display string like "2d (16h)". Days lead — use this for values that
+     * were *entered* in days (targets, allocations, capacity), where the
+     * days number is the source-of-thinking and hours is the implied detail.
+     * Input is still hours (the storage unit).
+     */
+    public static function formatDaysWithHours(float|int|string|null $hours, int $decimals = 1): string
+    {
+        $h = (float) $hours;
+        $d = self::daysFromHours($h);
+
+        return sprintf(
+            '%sd (%sh)',
+            self::trim(number_format($d, $decimals)),
+            self::trim(number_format($h, $decimals)),
         );
     }
 

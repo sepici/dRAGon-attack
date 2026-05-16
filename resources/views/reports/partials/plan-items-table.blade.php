@@ -19,8 +19,8 @@
             <tr>
                 <td>{{ $d->name }}</td>
                 <td>{{ $d->project->name }}<br><span style="color:#888; font-size:8pt;">{{ $d->project->client->legal_name }}</span></td>
-                <td class="num">{{ TimeUnits::formatHoursWithDays($d->target_hours) }}</td>
-                <td class="num">{{ TimeUnits::formatHoursWithDays($item->allocated_hours) }}</td>
+                <td class="num">{{ TimeUnits::formatDaysWithHours($d->target_hours) }}</td>
+                <td class="num">{{ TimeUnits::formatDaysWithHours($item->allocated_hours) }}</td>
                 <td class="num">{{ TimeUnits::formatHoursWithDays($item->hours_spent) }}</td>
                 <td>{{ $d->deadline ? $d->deadline->format('d M') : '—' }}</td>
                 <td class="center">

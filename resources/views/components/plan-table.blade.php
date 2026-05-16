@@ -47,9 +47,9 @@
                     @if ($showClient)
                         <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Client</th>
                     @endif
-                    <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Target</th>
+                    <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="days (hours)">Target</th>
                     @if ($showAllocation)
-                        <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Allocated</th>
+                        <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="days (hours)">Allocated</th>
                     @endif
                     <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Spent</th>
                     <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deadline</th>
@@ -79,11 +79,11 @@
                             </td>
                         @endif
                         <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                            {{ TimeUnits::formatHoursWithDays($deliverable->target_hours) }}
+                            {{ TimeUnits::formatDaysWithHours($deliverable->target_hours) }}
                         </td>
                         @if ($showAllocation)
                             <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                                {{ TimeUnits::formatHoursWithDays($allocations[$deliverable->id] ?? 0) }}
+                                {{ TimeUnits::formatDaysWithHours($allocations[$deliverable->id] ?? 0) }}
                             </td>
                         @endif
                         <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
@@ -133,11 +133,11 @@
                             Totals
                         </td>
                         <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">
-                            {{ TimeUnits::formatHoursWithDays($totalTargetHours) }}
+                            {{ TimeUnits::formatDaysWithHours($totalTargetHours) }}
                         </td>
                         @if ($showAllocation)
                             <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">
-                                {{ TimeUnits::formatHoursWithDays($totalAllocatedHours) }}
+                                {{ TimeUnits::formatDaysWithHours($totalAllocatedHours) }}
                             </td>
                         @endif
                         <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">
