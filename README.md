@@ -1,6 +1,8 @@
-# rag-tracker
+# dRAGonattack Tracker
 
-A small weekly/monthly/quarterly RAG (Red / Amber / Green) status tracker for client deliverables. Replaces a PowerPoint + spreadsheet workflow with a web app you can update in 10 minutes and export as a PDF for leadership.
+> Repo: `rag-tracker` &mdash; lives at `github.com/sepici/rag-tracker`.
+
+A small weekly / monthly / quarterly RAG (Red / Amber / Green) status tracker for client deliverables. Replaces a PowerPoint + spreadsheet workflow with a web app you can update in 10 minutes and export as a PDF for leadership.
 
 Built for personal use first; user authentication and roles are scaffolded so the rest of the org can use it later if useful.
 

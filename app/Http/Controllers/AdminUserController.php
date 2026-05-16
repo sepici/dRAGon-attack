@@ -30,8 +30,11 @@ class AdminUserController extends Controller
 {
     public function index(): View
     {
+        // Sort by role then name. The role values 'admin' < 'user' < 'viewer'
+        // already sort in the order we want alphabetically, so a plain
+        // ORDER BY works on both MySQL and SQLite (no MySQL-specific FIELD()).
         $users = User::query()
-            ->orderByRaw("FIELD(role, 'admin', 'user', 'viewer')")
+            ->orderBy('role')
             ->orderBy('name')
             ->get();
 

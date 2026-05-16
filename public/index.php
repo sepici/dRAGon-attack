@@ -1,9 +1,5 @@
 <?php
 
-// Suppress PHP 8.5+ deprecation warnings (Laravel 10 references constants
-// that became deprecated in PHP 8.5). Errors and warnings still display.
-error_reporting(E_ALL & ~E_DEPRECATED);
-
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 

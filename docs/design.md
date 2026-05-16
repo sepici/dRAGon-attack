@@ -1,4 +1,4 @@
-# rag-tracker — design doc
+# dRAGonattack Tracker — design doc
 
 Single source of truth for what we're building. Update this when decisions change.
 

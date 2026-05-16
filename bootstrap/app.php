@@ -1,5 +1,11 @@
 <?php
 
+// Suppress PHP 8.5+ deprecation warnings (Laravel 10 references constants
+// that became deprecated in PHP 8.5). Set here so it applies to BOTH the
+// web entry point (public/index.php) and the artisan CLI, which both load
+// this file. Errors and warnings still display normally.
+error_reporting(E_ALL & ~E_DEPRECATED);
+
 /*
 |--------------------------------------------------------------------------
 | Create The Application

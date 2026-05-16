@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Honest weekly RAG status tracking for client deliverables — without the wishful thinking.">
 
-    <title>{{ config('app.name', 'dRAG Tracker') }}</title>
+    <title>{{ config('app.name', 'dRAGonattack Tracker') }}</title>
 
     {{-- Fonts --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -227,7 +227,7 @@
     {{-- Footer --}}
     <footer class="border-t border-gray-200 dark:border-gray-700 py-6">
         <div class="max-w-6xl mx-auto px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
-            <p>© {{ now()->year }} dRAG Tracker. Built for internal use.</p>
+            <p>© {{ now()->year }} dRAGonattack Tracker. Built for internal use.</p>
             <p>Laravel {{ Illuminate\Foundation\Application::VERSION }} · PHP {{ PHP_VERSION }}</p>
         </div>
     </footer>

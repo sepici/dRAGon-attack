@@ -5,7 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        {{-- Browser-tab title. Pages set <x-slot:title>Section name</x-slot>;
+             falls back to just the app name. --}}
+        <title>{{ isset($title) ? $title . ' · ' : '' }}{{ config('app.name', 'dRAGonattack Tracker') }}</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

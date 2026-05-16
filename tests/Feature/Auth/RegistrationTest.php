@@ -2,22 +2,25 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Public registration is intentionally disabled. All accounts are created
+ * by an admin via /admin/users. These tests confirm the routes really are
+ * gone (i.e. nobody can sneak in via a stray HTTP request).
+ */
 class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_registration_screen_can_be_rendered(): void
+    public function test_get_register_route_does_not_exist(): void
     {
         $response = $this->get('/register');
-
-        $response->assertStatus(200);
+        $response->assertNotFound();
     }
 
-    public function test_new_users_can_register(): void
+    public function test_post_register_route_does_not_exist(): void
     {
         $response = $this->post('/register', [
             'name' => 'Test User',
@@ -26,7 +29,7 @@ class RegistrationTest extends TestCase
             'password_confirmation' => 'password',
         ]);
 
-        $this->assertAuthenticated();
-        $response->assertRedirect(RouteServiceProvider::HOME);
+        $response->assertNotFound();
+        $this->assertGuest();
     }
 }

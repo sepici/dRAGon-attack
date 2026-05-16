@@ -16,6 +16,8 @@
 @endphp
 
 <x-app-layout>
+    <x-slot name="title">Dashboard</x-slot>
+
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div>
