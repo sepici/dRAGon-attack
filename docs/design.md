@@ -107,7 +107,7 @@ project_id      bigint FK -> projects(id)  ON DELETE CASCADE
 name            varchar(200)
 description     text NULL
 target_hours    decimal(6,2)  CHECK (target_hours % 0.5 = 0)
-hours_spent     decimal(6,2)  default 0   CHECK (hours_spent % 0.5 = 0)
+{{-- hours_spent is derived from SUM(time_logs.hours WHERE deliverable_id = X). --}}
 deadline        date NULL
 status          enum('R','A','G','B') default 'R'
 moscow          enum('M','S','C','W') NULL
@@ -148,7 +148,8 @@ deliverable_id  bigint FK -> deliverables(id)  ON DELETE CASCADE  NULL
 ad_hoc_name     varchar(200) NULL    -- only set when deliverable_id IS NULL
 ad_hoc_notes    text NULL
 allocated_hours decimal(6,2)  default 0  CHECK (allocated_hours % 0.5 = 0)
-hours_spent     decimal(6,2)  default 0  CHECK (hours_spent % 0.5 = 0)
+{{-- hours_spent is derived: SUM(time_logs.hours WHERE deliverable_id = X
+     AND log_date BETWEEN period.starts_on AND period.ends_on). --}}
 status          enum('R','A','G','B') default 'R'
 completed_at    timestamp NULL
 sort_order      smallint default 0

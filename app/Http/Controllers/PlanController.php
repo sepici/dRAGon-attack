@@ -38,12 +38,13 @@ class PlanController extends Controller
         $period = PlanPeriod::findOrCreateCurrentFor($user, $kind);
 
         // Editable plan items (with their deliverable + project + client).
-        // Ad-hoc items (deliverable_id NULL) appear during review (M4), not
-        // here on the planning view.
-        $items = $period->items()
+        // Hydrate via the period's relation so loadHoursSpent() can populate
+        // each item's derived hours_spent in one go.
+        $period->load(['items' => fn ($q) => $q
             ->whereNotNull('deliverable_id')
-            ->with(['deliverable.project.client'])
-            ->get();
+            ->with(['deliverable.project.client'])]);
+        $period->loadHoursSpent();
+        $items = $period->items;
 
         // Deliverables the user owns but hasn't yet added to this period —
         // populate the "Add to plan" dropdown with these.
@@ -52,6 +53,7 @@ class PlanController extends Controller
             ->whereHas('project', fn ($q) => $q->where('owner_id', $user->id))
             ->whereNotIn('id', $allocatedDeliverableIds)
             ->with('project.client')
+            ->withHoursSpent()
             ->orderBy('name')
             ->get();
 

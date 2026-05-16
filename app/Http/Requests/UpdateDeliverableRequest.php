@@ -26,7 +26,6 @@ class UpdateDeliverableRequest extends FormRequest
             'name' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string'],
             'target_hours' => ['required', 'numeric', 'min:0', 'max:9999', 'multiple_of:0.5'],
-            'hours_spent' => ['nullable', 'numeric', 'min:0', 'max:9999', 'multiple_of:0.5'],
             'deadline' => ['nullable', 'date'],
             'status' => ['required', Rule::enum(Status::class)],
             'moscow' => ['nullable', Rule::enum(Moscow::class)],

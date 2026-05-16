@@ -31,7 +31,6 @@ class DeliverableCrudTest extends TestCase
             'name' => 'Legacy Score Interface',
             'description' => 'Live in staging, signed off by client',
             'target_hours' => 16.0,
-            'hours_spent' => 8.0,
             'status' => 'A',
             'moscow' => 'M',
             'contact_ids' => [$c1->id, $c2->id],

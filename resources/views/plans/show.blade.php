@@ -145,7 +145,7 @@
                                         </form>
                                     </td>
                                     <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                                        {{ TimeUnits::formatHoursWithDays($d->hours_spent) }}
+                                        {{ TimeUnits::formatHoursWithDays($item->hours_spent) }}
                                     </td>
                                     <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                                         {{ $d->deadline ? $d->deadline->format('d M') : '—' }}
@@ -183,7 +183,7 @@
                                 <tr>
                                     <td class="px-3 py-2 text-right text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400" colspan="4">Totals</td>
                                     <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($totalAllocated) }}</td>
-                                    <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($items->sum(fn ($it) => $it->deliverable->hours_spent)) }}</td>
+                                    <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($items->sum(fn ($it) => (float) $it->hours_spent)) }}</td>
                                     <td colspan="4">&nbsp;</td>
                                 </tr>
                             </tfoot>

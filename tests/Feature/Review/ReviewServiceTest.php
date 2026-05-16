@@ -9,6 +9,7 @@ use App\Models\Deliverable;
 use App\Models\PlanItem;
 use App\Models\PlanPeriod;
 use App\Models\Project;
+use App\Models\TimeLog;
 use App\Models\User;
 use App\Services\WeeklyReviewService;
 use Carbon\CarbonImmutable;
@@ -16,9 +17,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Direct unit-ish tests of WeeklyReviewService. These pin the transactional
- * behaviour (mark complete, recolour, ad-hoc rows, roll-forward) without
- * going through the HTTP layer.
+ * Service tests for the weekly review.
+ *
+ * Since M8c/d the review is a retrospective only — it toggles
+ * completed_at/status/notes but does NOT touch hours. Hours come from
+ * the daily journal (time_logs).
  */
 class ReviewServiceTest extends TestCase
 {
@@ -42,14 +45,12 @@ class ReviewServiceTest extends TestCase
         ]);
         $deliverable = Deliverable::factory()->create(array_merge([
             'project_id' => $project->id,
-            'hours_spent' => 0,
         ], $deliverableOverrides));
         $period = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
         $item = PlanItem::factory()->create(array_merge([
             'plan_period_id' => $period->id,
             'deliverable_id' => $deliverable->id,
             'allocated_hours' => 16.0,
-            'hours_spent' => 0,
             'status' => Status::Red,
         ], $itemOverrides));
 
@@ -63,82 +64,60 @@ class ReviewServiceTest extends TestCase
         [, , $period, $item] = $this->setupChain();
 
         $this->service->process($period, [
-            $item->id => ['hours_spent' => 16.0, 'completed' => true, 'notes' => 'shipped'],
-        ], []);
+            $item->id => ['completed' => true, 'notes' => 'shipped'],
+        ]);
 
         $item->refresh();
         $this->assertSame(Status::Green, $item->status);
         $this->assertNotNull($item->completed_at);
-        $this->assertEqualsWithDelta(16.0, (float) $item->hours_spent, 0.01);
         $this->assertSame('shipped', $item->notes);
     }
 
-    public function test_marking_complete_increments_deliverable_cumulative_hours_spent(): void
+    public function test_unmarking_a_completed_item_clears_completed_at(): void
     {
-        [, $deliverable, $period, $item] = $this->setupChain(['hours_spent' => 32.0]);
+        [, , $period, $item] = $this->setupChain([], [
+            'completed_at' => now(),
+            'status' => Status::Green,
+        ]);
 
         $this->service->process($period, [
-            $item->id => ['hours_spent' => 12.0, 'completed' => true],
-        ], []);
-
-        $this->assertEqualsWithDelta(44.0, (float) $deliverable->fresh()->hours_spent, 0.01);
-    }
-
-    public function test_unmarking_an_already_complete_item_withdraws_hours_from_deliverable(): void
-    {
-        // Set up an already-completed item so the service sees it as "previously complete".
-        [, $deliverable, $period, $item] = $this->setupChain(
-            ['hours_spent' => 16.0],
-            ['hours_spent' => 16.0, 'completed_at' => now(), 'status' => Status::Green],
-        );
-
-        $this->service->process($period, [
-            $item->id => ['hours_spent' => 16.0, 'completed' => false],
-        ], []);
+            $item->id => ['completed' => false],
+        ]);
 
         $item->refresh();
         $this->assertNull($item->completed_at);
-        // Deliverable cumulative goes from 16.0 → 0.0 because we un-completed.
-        $this->assertEqualsWithDelta(0.0, (float) $deliverable->fresh()->hours_spent, 0.01);
-    }
-
-    public function test_repeated_save_of_already_complete_item_does_not_double_count(): void
-    {
-        [, $deliverable, $period, $item] = $this->setupChain();
-
-        // First review: complete it.
-        $this->service->process($period, [
-            $item->id => ['hours_spent' => 8.0, 'completed' => true],
-        ], []);
-        $this->assertEqualsWithDelta(8.0, (float) $deliverable->fresh()->hours_spent, 0.01);
-
-        // Second save with same data — should NOT add another 8.0 to the deliverable.
-        $this->service->process($period, [
-            $item->id => ['hours_spent' => 8.0, 'completed' => true],
-        ], []);
-        $this->assertEqualsWithDelta(8.0, (float) $deliverable->fresh()->hours_spent, 0.01);
     }
 
     // ---------- Recolour rules ----------------------------------------------
 
-    public function test_incomplete_item_with_no_spent_keeps_existing_status(): void
+    public function test_incomplete_item_with_no_hours_keeps_existing_status(): void
     {
         [, , $period, $item] = $this->setupChain(['deadline' => null], ['status' => Status::Amber]);
 
         $this->service->process($period, [
-            $item->id => ['hours_spent' => 0, 'completed' => false],
-        ], []);
+            $item->id => ['completed' => false],
+        ]);
 
         $this->assertSame(Status::Amber, $item->fresh()->status);
     }
 
-    public function test_incomplete_item_with_hours_spent_recolours_amber(): void
+    public function test_incomplete_item_with_logged_hours_recolours_amber(): void
     {
-        [, , $period, $item] = $this->setupChain(['deadline' => null], ['status' => Status::Red]);
+        [$user, $deliverable, $period, $item] = $this->setupChain(
+            ['deadline' => null],
+            ['status' => Status::Red],
+        );
+        // Time logged in the journal during this period — drives recolour.
+        TimeLog::factory()->create([
+            'owner_id' => $user->id,
+            'deliverable_id' => $deliverable->id,
+            'log_date' => $period->starts_on,
+            'hours' => 4.0,
+        ]);
 
         $this->service->process($period, [
-            $item->id => ['hours_spent' => 4.0, 'completed' => false],
-        ], []);
+            $item->id => ['completed' => false],
+        ]);
 
         $this->assertSame(Status::Amber, $item->fresh()->status);
     }
@@ -146,60 +125,36 @@ class ReviewServiceTest extends TestCase
     public function test_incomplete_item_with_past_deadline_recolours_red(): void
     {
         $pastDate = CarbonImmutable::now()->subDays(5);
-        [, , $period, $item] = $this->setupChain(
+        [$user, $deliverable, $period, $item] = $this->setupChain(
             ['deadline' => $pastDate],
             ['status' => Status::Amber],
         );
+        TimeLog::factory()->create([
+            'owner_id' => $user->id,
+            'deliverable_id' => $deliverable->id,
+            'log_date' => $period->starts_on,
+            'hours' => 4.0,
+        ]);
 
         $this->service->process($period, [
-            $item->id => ['hours_spent' => 4.0, 'completed' => false],
-        ], []);
+            $item->id => ['completed' => false],
+        ]);
 
         // Red beats amber when deadline is in the past.
         $this->assertSame(Status::Red, $item->fresh()->status);
-    }
-
-    // ---------- Ad-hoc items ------------------------------------------------
-
-    public function test_ad_hoc_item_is_created_as_completed_green(): void
-    {
-        [, , $period] = $this->setupChain();
-
-        $this->service->process($period, [], [
-            ['name' => 'Emergency server fix', 'hours_spent' => 4.0, 'notes' => 'Apache restart'],
-        ]);
-
-        $adHoc = $period->items()->whereNull('deliverable_id')->first();
-        $this->assertNotNull($adHoc);
-        $this->assertSame('Emergency server fix', $adHoc->ad_hoc_name);
-        $this->assertEqualsWithDelta(4.0, (float) $adHoc->hours_spent, 0.01);
-        $this->assertSame(Status::Green, $adHoc->status);
-        $this->assertNotNull($adHoc->completed_at);
-    }
-
-    public function test_blank_name_ad_hoc_rows_are_dropped(): void
-    {
-        [, , $period] = $this->setupChain();
-
-        $this->service->process($period, [], [
-            ['name' => '   ', 'hours_spent' => 8.0],  // blank name
-            ['name' => 'Real item', 'hours_spent' => 4.0],
-        ]);
-
-        $this->assertSame(1, $period->items()->whereNull('deliverable_id')->count());
     }
 
     // ---------- Roll forward ------------------------------------------------
 
     public function test_roll_forward_copies_incomplete_items_to_next_week(): void
     {
-        [$user, , $period, $item] = $this->setupChain();
+        [, , $period, $item] = $this->setupChain();
 
         // One incomplete (the seeded item), and one already-complete.
         $deliverable2 = Deliverable::factory()->create([
             'project_id' => $item->deliverable->project_id,
         ]);
-        $completedItem = PlanItem::factory()->create([
+        PlanItem::factory()->create([
             'plan_period_id' => $period->id,
             'deliverable_id' => $deliverable2->id,
             'allocated_hours' => 8.0,
@@ -218,9 +173,12 @@ class ReviewServiceTest extends TestCase
         $copied = $nextPeriod->items()->get();
         $this->assertCount(1, $copied);
         $this->assertSame($item->deliverable_id, $copied->first()->deliverable_id);
-        $this->assertEqualsWithDelta((float) $item->allocated_hours, (float) $copied->first()->allocated_hours, 0.01);
+        $this->assertEqualsWithDelta(
+            (float) $item->allocated_hours,
+            (float) $copied->first()->allocated_hours,
+            0.01,
+        );
         $this->assertSame(Status::Red, $copied->first()->status);
-        $this->assertEqualsWithDelta(0.0, (float) $copied->first()->hours_spent, 0.01);
     }
 
     public function test_roll_forward_is_idempotent(): void
@@ -241,5 +199,101 @@ class ReviewServiceTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->service->rollForward($monthly);
+    }
+
+    // ---------- Derived hours_spent on plan_items --------------------------
+
+    public function test_plan_item_hours_spent_is_derived_from_time_logs_in_period_window(): void
+    {
+        [$user, $deliverable, $period, $item] = $this->setupChain();
+
+        // Inside the period: counted.
+        TimeLog::factory()->create([
+            'owner_id' => $user->id,
+            'deliverable_id' => $deliverable->id,
+            'log_date' => $period->starts_on,
+            'hours' => 2.0,
+        ]);
+        TimeLog::factory()->create([
+            'owner_id' => $user->id,
+            'deliverable_id' => $deliverable->id,
+            'log_date' => $period->ends_on,
+            'hours' => 3.0,
+        ]);
+        // Outside the period (before): NOT counted.
+        TimeLog::factory()->create([
+            'owner_id' => $user->id,
+            'deliverable_id' => $deliverable->id,
+            'log_date' => $period->starts_on->copy()->subDay(),
+            'hours' => 99.0,
+        ]);
+        // Outside the period (after): NOT counted.
+        TimeLog::factory()->create([
+            'owner_id' => $user->id,
+            'deliverable_id' => $deliverable->id,
+            'log_date' => $period->ends_on->copy()->addDay(),
+            'hours' => 99.0,
+        ]);
+
+        $this->assertEqualsWithDelta(5.0, (float) $item->fresh()->hours_spent, 0.01);
+    }
+
+    public function test_deliverable_hours_spent_sums_all_time_logs(): void
+    {
+        [$user, $deliverable] = $this->setupChain();
+        TimeLog::factory()->create([
+            'owner_id' => $user->id, 'deliverable_id' => $deliverable->id,
+            'log_date' => '2026-05-10', 'hours' => 2.0,
+        ]);
+        TimeLog::factory()->create([
+            'owner_id' => $user->id, 'deliverable_id' => $deliverable->id,
+            'log_date' => '2026-05-15', 'hours' => 3.5,
+        ]);
+
+        $this->assertEqualsWithDelta(5.5, (float) $deliverable->fresh()->hours_spent, 0.01);
+    }
+
+    public function test_with_hours_spent_scope_eager_loads_the_sum(): void
+    {
+        [$user, $deliverable] = $this->setupChain();
+        TimeLog::factory()->count(2)->create([
+            'owner_id' => $user->id,
+            'deliverable_id' => $deliverable->id,
+            'hours' => 1.5,
+        ]);
+
+        $hydrated = Deliverable::withHoursSpent()->find($deliverable->id);
+
+        // After withSum, hours_spent is on $hydrated->attributes — the
+        // accessor short-circuits and doesn't issue another query.
+        $this->assertArrayHasKey('hours_spent', $hydrated->getAttributes());
+        $this->assertEqualsWithDelta(3.0, (float) $hydrated->hours_spent, 0.01);
+    }
+
+    public function test_period_load_hours_spent_hydrates_all_items_in_one_pass(): void
+    {
+        [$user, $d1, $period] = $this->setupChain();
+        $d2 = Deliverable::factory()->create(['project_id' => $d1->project_id]);
+        PlanItem::factory()->create([
+            'plan_period_id' => $period->id,
+            'deliverable_id' => $d2->id,
+            'allocated_hours' => 4.0,
+        ]);
+
+        TimeLog::factory()->create([
+            'owner_id' => $user->id, 'deliverable_id' => $d1->id,
+            'log_date' => $period->starts_on, 'hours' => 1.0,
+        ]);
+        TimeLog::factory()->create([
+            'owner_id' => $user->id, 'deliverable_id' => $d2->id,
+            'log_date' => $period->starts_on, 'hours' => 2.5,
+        ]);
+
+        $period->load('items');
+        $period->loadHoursSpent();
+
+        $byDeliverable = $period->items->keyBy('deliverable_id');
+        $this->assertEqualsWithDelta(1.0, (float) $byDeliverable[$d1->id]->hours_spent, 0.01);
+        $this->assertEqualsWithDelta(2.5, (float) $byDeliverable[$d2->id]->hours_spent, 0.01);
     }
 }

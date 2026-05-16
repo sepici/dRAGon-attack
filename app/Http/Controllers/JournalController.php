@@ -8,6 +8,7 @@ use App\Models\Deliverable;
 use App\Models\PlanPeriod;
 use App\Models\TimeLog;
 use App\Services\DailyJournalService;
+use App\Support\TimeUnits;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
@@ -82,7 +83,11 @@ class JournalController extends Controller
                 ->get();
 
         $totalHours = (float) $logs->sum('hours');
-        $dailyTarget = (float) $user->weekly_capacity_hours / 5.0;
+
+        // Daily target = one workday's worth of hours, regardless of how
+        // many days a week the user works. The weekly capacity already
+        // encodes "5 days × 8h" vs "6 days × 8h" by being the total.
+        $dailyTarget = TimeUnits::HOURS_PER_DAY;
 
         return view('journal.show', [
             'date' => $date,

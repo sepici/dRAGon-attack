@@ -2,7 +2,6 @@
     use App\Support\TimeUnits;
 
     $rangeText = $period->starts_on->format('d M Y') . ' → ' . $period->ends_on->format('d M Y');
-    [$plannedItems, $adHocExisting] = $items->partition(fn ($i) => ! is_null($i->deliverable_id));
 @endphp
 
 <x-app-layout>
@@ -17,7 +16,7 @@
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $rangeText }}</p>
             </div>
             {{-- Roll-forward button (separate form) --}}
-            @if ($plannedItems->whereNull('completed_at')->isNotEmpty())
+            @if ($items->whereNull('completed_at')->isNotEmpty())
                 <form method="POST" action="{{ route('review.roll-forward') }}"
                       onsubmit="return confirm('Copy incomplete items into next week\'s plan?');">
                     @csrf
@@ -46,15 +45,27 @@
                 </div>
             @endif
 
+            {{-- Banner: hours come from the journal now --}}
+            <div class="rounded-md bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 px-4 py-3 text-sm text-indigo-800 dark:text-indigo-200 flex items-center justify-between">
+                <div>
+                    Hours are now logged day-by-day in the
+                    <a href="{{ route('journal.today') }}" class="font-medium underline">Daily Journal</a>.
+                    This page is for retrospective sign-off only — tick what's done, add a closing note.
+                </div>
+                <a href="{{ route('journal.today') }}"
+                   class="ml-4 text-xs whitespace-nowrap inline-flex items-center rounded-md px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 transition">
+                    Open journal →
+                </a>
+            </div>
+
             <form method="POST" action="{{ route('review.store') }}" class="space-y-6">
                 @csrf
 
-                {{-- Planned items --}}
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Planned for this week</h3>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Tick what's <em>delivered + tested + signed off</em> (not just "in progress"). Enter actual hours spent (8h = 1 day).
+                            Tick what's <em>delivered + tested + signed off</em> (not just "in progress"). Hours come from your journal.
                         </p>
                     </div>
                     <div class="overflow-x-auto">
@@ -65,12 +76,12 @@
                                     <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deliverable</th>
                                     <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Client</th>
                                     <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Allocated</th>
-                                    <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours">Spent&nbsp;(h)</th>
+                                    <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days) — derived from journal">Spent</th>
                                     <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @forelse ($plannedItems as $item)
+                                @forelse ($items as $item)
                                     @php $d = $item->deliverable; @endphp
                                     <tr class="{{ $item->completed_at ? 'opacity-60' : '' }}">
                                         <td class="px-3 py-3 text-center">
@@ -88,12 +99,8 @@
                                         <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
                                             {{ TimeUnits::formatHoursWithDays($item->allocated_hours) }}
                                         </td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-right">
-                                            <input type="number"
-                                                name="items[{{ $item->id }}][hours_spent]"
-                                                step="0.5" min="0"
-                                                value="{{ old("items.{$item->id}.hours_spent", number_format((float) $item->hours_spent, 1)) }}"
-                                                class="w-20 text-right text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
+                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
+                                            {{ TimeUnits::formatHoursWithDays($item->hours_spent) }}
                                         </td>
                                         <td class="px-3 py-3 text-sm">
                                             <input type="text"
@@ -113,73 +120,6 @@
                                 @endforelse
                             </tbody>
                         </table>
-                    </div>
-                </div>
-
-                {{-- Ad-hoc / unplanned work --}}
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg"
-                     x-data="{
-                        rows: [{ name: '', hours_spent: '', notes: '' }],
-                        add() { this.rows.push({ name: '', hours_spent: '', notes: '' }); },
-                        remove(i) { this.rows.splice(i, 1); if (this.rows.length === 0) this.add(); },
-                     }">
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                        <div>
-                            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Unplanned work this week</h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Anything you spent time on that wasn't on the plan — e.g. emergency server intervention, ad-hoc support, an urgent client call.
-                            </p>
-                        </div>
-                        <button type="button" @click="add()" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
-                            + Add row
-                        </button>
-                    </div>
-
-                    {{-- Already-saved ad-hoc items from a previous review submission (read-only). --}}
-                    @if ($adHocExisting->isNotEmpty())
-                        <div class="overflow-x-auto border-b border-gray-200 dark:border-gray-700">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                <thead class="bg-gray-50 dark:bg-gray-900/50">
-                                    <tr>
-                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                                        <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Spent</th>
-                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                    @foreach ($adHocExisting as $adHoc)
-                                        <tr>
-                                            <td class="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">{{ $adHoc->ad_hoc_name }}</td>
-                                            <td class="px-3 py-2 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">{{ TimeUnits::formatHoursWithDays($adHoc->hours_spent) }}</td>
-                                            <td class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">{{ $adHoc->ad_hoc_notes ?: '—' }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-
-                    <div class="p-6 space-y-3">
-                        <template x-for="(row, i) in rows" :key="i">
-                            <div class="grid grid-cols-12 gap-2 items-start">
-                                <input type="text" :name="`ad_hoc[${i}][name]`" x-model="row.name"
-                                    placeholder="e.g. emergency server intervention"
-                                    class="col-span-5 text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
-                                <input type="number" :name="`ad_hoc[${i}][hours_spent]`" x-model="row.hours_spent"
-                                    step="0.5" min="0" placeholder="Hours"
-                                    class="col-span-2 text-sm text-right border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
-                                <input type="text" :name="`ad_hoc[${i}][notes]`" x-model="row.notes"
-                                    placeholder="Notes (optional)"
-                                    class="col-span-4 text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
-                                <button type="button" @click="remove(i)"
-                                    class="col-span-1 text-xs text-red-600 dark:text-red-400 hover:underline">
-                                    Remove
-                                </button>
-                            </div>
-                        </template>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                            Rows with a blank name are ignored on save.
-                        </p>
                     </div>
                 </div>
 

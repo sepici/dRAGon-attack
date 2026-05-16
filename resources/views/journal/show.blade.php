@@ -88,7 +88,7 @@
                     <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Daily target</p>
                     <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">
                         {{ TimeUnits::formatHoursWithDays($dailyTarget) }}
-                        <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">(weekly cap ÷ 5)</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">(one workday)</span>
                     </p>
                 </div>
             </div>

@@ -13,36 +13,32 @@ use Illuminate\Support\Facades\DB;
 /**
  * Processes the end-of-week review for a PlanPeriod (always weekly kind).
  *
- * Encapsulates the transactional logic so the controller stays tiny:
+ * Since M8c, hours-tracking lives entirely in the daily journal (time_logs).
+ * The weekly review is the *retrospective* — for each planned item the user
+ * just toggles "done" and writes a note. Nothing here writes hours.
  *
  *   1. For each existing plan_item we received an update for:
- *        - update hours_spent + notes
- *        - if marked complete → set completed_at, status=G, increment the
- *          underlying Deliverable.hours_spent (cumulative master counter)
- *        - if NOT marked complete → recolour based on deadline + spend:
+ *        - update notes
+ *        - if marked complete → set completed_at, status=G
+ *        - if NOT marked complete → recolour based on deadline + derived
+ *          hours_spent (derived from time_logs sums via PlanItem accessor):
  *              past deadline → R
- *              any hours spent → A
- *              else            → leave status unchanged
+ *              any hours logged this week → A
+ *              else                       → leave status unchanged
  *
- *   2. For each ad-hoc item submitted (unplanned work):
- *        - insert a new plan_item with deliverable_id=NULL, ad_hoc_name set,
- *          completed_at=now, status=G
- *
- *   3. (Separate method, called from a dedicated button) Roll incomplete
- *      items forward into next week's plan_period.
+ *   2. (Separate method, dedicated button) Roll incomplete items forward
+ *      into next week's plan_period.
  */
 class WeeklyReviewService
 {
     /**
-     * @param array<int,array{hours_spent?:float,notes?:?string,completed?:bool}> $itemUpdates
+     * @param array<int,array{notes?:?string,completed?:bool}> $itemUpdates
      *        Keyed by plan_item id.
-     * @param array<int,array{name:string,hours_spent:float,notes?:?string}> $adHocItems
      */
-    public function process(PlanPeriod $period, array $itemUpdates, array $adHocItems): void
+    public function process(PlanPeriod $period, array $itemUpdates): void
     {
-        DB::transaction(function () use ($period, $itemUpdates, $adHocItems) {
+        DB::transaction(function () use ($period, $itemUpdates) {
             $this->updateExistingItems($period, $itemUpdates);
-            $this->createAdHocItems($period, $adHocItems);
         });
     }
 
@@ -77,7 +73,6 @@ class WeeklyReviewService
                     $nextPeriod->items()->create([
                         'deliverable_id' => $item->deliverable_id,
                         'allocated_hours' => $item->allocated_hours,
-                        'hours_spent' => 0,
                         'notes' => $item->notes,
                         'status' => Status::Red,
                     ]);
@@ -98,12 +93,7 @@ class WeeklyReviewService
                 continue;
             }
 
-            $hoursSpent = (float) ($update['hours_spent'] ?? 0);
-            $previousHoursSpent = (float) $item->hours_spent;
-            $previouslyCompleted = ! is_null($item->completed_at);
             $markComplete = (bool) ($update['completed'] ?? false);
-
-            $item->hours_spent = $hoursSpent;
             $item->notes = $update['notes'] ?? null;
 
             if ($markComplete) {
@@ -115,16 +105,6 @@ class WeeklyReviewService
             }
 
             $item->save();
-
-            // Master deliverable.hours_spent counter: only roll the delta of
-            // an explicitly-completed item back to the Deliverable, and only
-            // the first time.
-            if ($markComplete && ! $previouslyCompleted && $item->deliverable_id) {
-                $item->deliverable->increment('hours_spent', $hoursSpent);
-            }
-            if (! $markComplete && $previouslyCompleted && $item->deliverable_id) {
-                $item->deliverable->decrement('hours_spent', $previousHoursSpent);
-            }
         }
     }
 
@@ -135,29 +115,11 @@ class WeeklyReviewService
         if ($deliverable && $deliverable->deadline && Carbon::parse($deliverable->deadline)->isPast()) {
             return Status::Red;
         }
+        // Derived from time_logs in the period's window. Any hours logged
+        // means "in flight" → amber.
         if ((float) $item->hours_spent > 0) {
             return Status::Amber;
         }
         return $item->status; // leave unchanged
-    }
-
-    private function createAdHocItems(PlanPeriod $period, array $adHocItems): void
-    {
-        foreach ($adHocItems as $entry) {
-            $name = trim((string) ($entry['name'] ?? ''));
-            if ($name === '') {
-                continue;
-            }
-
-            $period->items()->create([
-                'deliverable_id' => null,
-                'ad_hoc_name' => $name,
-                'ad_hoc_notes' => $entry['notes'] ?? null,
-                'allocated_hours' => 0,
-                'hours_spent' => (float) ($entry['hours_spent'] ?? 0),
-                'completed_at' => now(),
-                'status' => Status::Green,
-            ]);
-        }
     }
 }

@@ -20,7 +20,6 @@ class Deliverable extends Model
         'name',
         'description',
         'target_hours',
-        'hours_spent',
         'deadline',
         'status',
         'moscow',
@@ -29,7 +28,6 @@ class Deliverable extends Model
 
     protected $casts = [
         'target_hours' => 'decimal:2',
-        'hours_spent' => 'decimal:2',
         'deadline' => 'date',
         'status' => Status::class,
         'moscow' => Moscow::class,
@@ -74,7 +72,30 @@ class Deliverable extends Model
         return ! is_null($this->completed_at);
     }
 
-    /** Remaining hours = target - spent, never negative. */
+    /**
+     * Cumulative hours logged against this deliverable, derived from
+     * time_logs. Controllers that render lists should call
+     * ->withHoursSpent() to eager-load via a single SUM; the lazy fallback
+     * here only kicks in when the attribute isn't already populated.
+     */
+    public function getHoursSpentAttribute(): float
+    {
+        if (array_key_exists('hours_spent', $this->attributes)) {
+            return (float) $this->attributes['hours_spent'];
+        }
+        return (float) $this->timeLogs()->sum('hours');
+    }
+
+    /**
+     * Eager-load hours_spent as a SUM(time_logs.hours) column on the result.
+     *   Deliverable::withHoursSpent()->get();
+     */
+    public function scopeWithHoursSpent($query)
+    {
+        return $query->withSum('timeLogs as hours_spent', 'hours');
+    }
+
+    /** Remaining hours = target − spent, never negative. */
     public function getRemainingHoursAttribute(): float
     {
         return max(0.0, (float) $this->target_hours - (float) $this->hours_spent);

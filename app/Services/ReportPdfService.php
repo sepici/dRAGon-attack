@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\PlanKind;
 use App\Models\PlanPeriod;
 use App\Models\Report;
+use App\Models\TimeLog;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
@@ -47,42 +48,50 @@ class ReportPdfService
         // Eager-load deliverable chains so the Blade template doesn't N+1
         $with = ['deliverable.project.client'];
 
+        // Hydrate derived hours_spent on every period's items in one
+        // grouped SUM per period (see PlanPeriod::loadHoursSpent).
+        $thisWeek->load(['items' => fn ($q) => $q->with($with)]);
+        $thisWeek->loadHoursSpent();
+        $thisMonth->load(['items' => fn ($q) => $q->whereNotNull('deliverable_id')->with($with)]);
+        $thisMonth->loadHoursSpent();
+        $thisQuarter->load(['items' => fn ($q) => $q->whereNotNull('deliverable_id')->with($with)]);
+        $thisQuarter->loadHoursSpent();
+        if ($nextWeek) {
+            $nextWeek->load(['items' => fn ($q) => $q->whereNotNull('deliverable_id')->with($with)]);
+            $nextWeek->loadHoursSpent();
+        }
+
         $data = [
             'user' => $user,
             'generatedAt' => $now,
 
             // Section 1 — the week just completed
             'thisWeek' => $thisWeek,
-            'completedItems' => $thisWeek->items()
-                ->whereNotNull('deliverable_id')
-                ->whereNotNull('completed_at')
-                ->with($with)
-                ->get(),
-            'adHocItems' => $thisWeek->items()
+            'completedItems' => $thisWeek->items->whereNotNull('completed_at')->values(),
+            // Ad-hoc work this week now lives in time_logs, not plan_items.
+            'adHocItems' => TimeLog::query()
+                ->where('owner_id', $user->id)
                 ->whereNull('deliverable_id')
+                ->whereDate('log_date', '>=', $thisWeek->starts_on)
+                ->whereDate('log_date', '<=', $thisWeek->ends_on)
+                ->orderBy('log_date')->orderBy('id')
                 ->get(),
-            'incompleteItems' => $thisWeek->items()
-                ->whereNotNull('deliverable_id')
-                ->whereNull('completed_at')
-                ->with($with)
-                ->get(),
+            'incompleteItems' => $thisWeek->items->whereNull('completed_at')->values(),
             'weekCapacity' => $thisWeek->capacity(),
-            'weekTotalSpent' => (float) $thisWeek->items()->sum('hours_spent'),
+            'weekTotalSpent' => $thisWeek->totalSpent(),
 
             // Section 2 — next week's plan
             'nextWeek' => $nextWeek,
-            'nextWeekItems' => $nextWeek
-                ? $nextWeek->items()->whereNotNull('deliverable_id')->with($with)->get()
-                : collect(),
+            'nextWeekItems' => $nextWeek ? $nextWeek->items : collect(),
 
             // Section 3 — monthly
             'thisMonth' => $thisMonth,
-            'monthItems' => $thisMonth->items()->whereNotNull('deliverable_id')->with($with)->get(),
+            'monthItems' => $thisMonth->items,
             'monthCapacity' => $thisMonth->capacity(),
 
             // Section 4 — quarterly
             'thisQuarter' => $thisQuarter,
-            'quarterItems' => $thisQuarter->items()->whereNotNull('deliverable_id')->with($with)->get(),
+            'quarterItems' => $thisQuarter->items,
             'quarterCapacity' => $thisQuarter->capacity(),
         ];
 

@@ -121,6 +121,21 @@ class PlanPeriod extends Model
         return (float) $this->items()->sum('allocated_hours');
     }
 
+    /**
+     * Sum of every time_log this owner recorded inside the period's
+     * [starts_on, ends_on] window — including ad-hoc logs that aren't
+     * tied to a plan_item. Used by the PDF report's "spent this week"
+     * summary line.
+     */
+    public function totalSpent(): float
+    {
+        return (float) TimeLog::query()
+            ->where('owner_id', $this->owner_id)
+            ->whereDate('log_date', '>=', $this->starts_on)
+            ->whereDate('log_date', '<=', $this->ends_on)
+            ->sum('hours');
+    }
+
     /** The user's capacity for THIS kind of period (in hours). */
     public function capacity(): float
     {
@@ -136,5 +151,45 @@ class PlanPeriod extends Model
     public function overUnder(): float
     {
         return $this->totalAllocated() - $this->capacity();
+    }
+
+    /**
+     * Hydrate each plan_item's derived hours_spent attribute with a single
+     * grouped SUM over time_logs. Call this in controllers before rendering
+     * a list of items, so the per-row accessor doesn't N+1 the DB.
+     *
+     * Returns the period itself so callers can chain.
+     */
+    public function loadHoursSpent(): self
+    {
+        $items = $this->items;
+        if ($items->isEmpty()) {
+            return $this;
+        }
+
+        $deliverableIds = $items->pluck('deliverable_id')->filter()->unique();
+        if ($deliverableIds->isEmpty()) {
+            // Nothing to sum — just zero everyone out.
+            $items->each(fn ($i) => $i->setAttribute('hours_spent', 0.0));
+            return $this;
+        }
+
+        $sums = TimeLog::query()
+            ->where('owner_id', $this->owner_id)
+            ->whereDate('log_date', '>=', $this->starts_on)
+            ->whereDate('log_date', '<=', $this->ends_on)
+            ->whereIn('deliverable_id', $deliverableIds)
+            ->selectRaw('deliverable_id, SUM(hours) as total')
+            ->groupBy('deliverable_id')
+            ->pluck('total', 'deliverable_id');
+
+        $items->each(function ($item) use ($sums) {
+            $item->setAttribute(
+                'hours_spent',
+                (float) ($sums[$item->deliverable_id] ?? 0),
+            );
+        });
+
+        return $this;
     }
 }

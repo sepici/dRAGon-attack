@@ -28,6 +28,7 @@ class DeliverableController extends Controller
         $user = auth()->user();
 
         $query = Deliverable::with(['project.client'])
+            ->withHoursSpent()
             ->orderBy('deadline')
             ->orderBy('name');
 
@@ -45,7 +46,6 @@ class DeliverableController extends Controller
         $deliverable = new Deliverable([
             'status' => 'R',
             'target_hours' => 0,
-            'hours_spent' => 0,
             'project_id' => request()->integer('project'), // prefill from ?project=
         ]);
         $projects = $this->projectsWithContacts();
@@ -70,6 +70,8 @@ class DeliverableController extends Controller
     public function show(Deliverable $deliverable): View
     {
         $deliverable->load(['project.client', 'contactPersons']);
+        // Derived hours_spent for this single row.
+        $deliverable->setAttribute('hours_spent', (float) $deliverable->timeLogs()->sum('hours'));
 
         return view('deliverables.show', compact('deliverable'));
     }

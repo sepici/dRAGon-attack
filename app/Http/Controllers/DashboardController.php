@@ -56,12 +56,14 @@ class DashboardController extends Controller
             ->limit(8)
             ->get();
 
-        // Recently completed (last 5).
+        // Recently completed (last 5). withHoursSpent() so the view can
+        // show "Xh (Yd)" without N+1.
         $recentlyCompleted = Deliverable::query()
             ->whereHas('project', fn ($q) => $q->where('owner_id', $user->id))
             ->whereNotNull('completed_at')
             ->orderByDesc('completed_at')
             ->with('project.client')
+            ->withHoursSpent()
             ->limit(5)
             ->get();
 

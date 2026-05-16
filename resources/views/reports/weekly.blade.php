@@ -103,6 +103,7 @@
     <table>
         <thead>
             <tr>
+                <th>Date</th>
                 <th>Item</th>
                 <th class="num">Spent</th>
                 <th>Notes</th>
@@ -111,9 +112,10 @@
         <tbody>
             @foreach ($adHocItems as $a)
                 <tr>
+                    <td>{{ $a->log_date->format('d M') }}</td>
                     <td>{{ $a->ad_hoc_name }}</td>
-                    <td class="num">{{ TimeUnits::formatHoursWithDays($a->hours_spent) }}</td>
-                    <td>{{ $a->ad_hoc_notes ?: '—' }}</td>
+                    <td class="num">{{ TimeUnits::formatHoursWithDays($a->hours) }}</td>
+                    <td>{{ $a->notes ?: '—' }}</td>
                 </tr>
             @endforeach
         </tbody>

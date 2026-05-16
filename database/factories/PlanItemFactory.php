@@ -19,17 +19,7 @@ class PlanItemFactory extends Factory
             'plan_period_id' => PlanPeriod::factory(),
             'deliverable_id' => Deliverable::factory(),
             'allocated_hours' => 8.0,
-            'hours_spent' => 0,
             'status' => Status::Red,
         ];
-    }
-
-    /** Ad-hoc item (no linked deliverable) — used by review tests in M4. */
-    public function adHoc(string $name = 'Unplanned work'): static
-    {
-        return $this->state(fn () => [
-            'deliverable_id' => null,
-            'ad_hoc_name' => $name,
-        ]);
     }
 }
