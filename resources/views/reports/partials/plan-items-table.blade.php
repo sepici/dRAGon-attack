@@ -1,4 +1,5 @@
 {{-- Re-used by the three plan sections of the weekly PDF report. --}}
+@php use App\Support\TimeUnits; @endphp
 <table>
     <thead>
         <tr>
@@ -18,9 +19,9 @@
             <tr>
                 <td>{{ $d->name }}</td>
                 <td>{{ $d->project->name }}<br><span style="color:#888; font-size:8pt;">{{ $d->project->client->legal_name }}</span></td>
-                <td class="num">{{ number_format((float) $d->target_days, 1) }}</td>
-                <td class="num">{{ number_format((float) $item->allocated_days, 1) }}</td>
-                <td class="num">{{ number_format((float) $d->days_spent, 1) }}</td>
+                <td class="num">{{ TimeUnits::formatHoursWithDays($d->target_hours) }}</td>
+                <td class="num">{{ TimeUnits::formatHoursWithDays($item->allocated_hours) }}</td>
+                <td class="num">{{ TimeUnits::formatHoursWithDays($d->hours_spent) }}</td>
                 <td>{{ $d->deadline ? $d->deadline->format('d M') : '—' }}</td>
                 <td class="center">
                     @if ($d->moscow)

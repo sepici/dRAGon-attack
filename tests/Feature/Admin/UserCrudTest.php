@@ -54,8 +54,8 @@ class UserCrudTest extends TestCase
             'password' => 'super-secret-123',
             'password_confirmation' => 'super-secret-123',
             'role' => 'user',
-            'weekly_capacity_days' => 5.0,
-            'monthly_capacity_days' => 20.0,
+            'weekly_capacity_hours' => 40.0,
+            'monthly_capacity_hours' => 160.0,
         ]);
 
         $response->assertRedirect(route('admin.users.index'));
@@ -79,8 +79,8 @@ class UserCrudTest extends TestCase
                 'password' => 'super-secret-123',
                 'password_confirmation' => 'super-secret-123',
                 'role' => 'user',
-                'weekly_capacity_days' => 5.0,
-                'monthly_capacity_days' => 20.0,
+                'weekly_capacity_hours' => 40.0,
+                'monthly_capacity_hours' => 160.0,
             ]);
 
         $response->assertSessionHasErrors('email');
@@ -96,8 +96,8 @@ class UserCrudTest extends TestCase
                 'name' => 'No Password',
                 'email' => 'np@example.com',
                 'role' => 'user',
-                'weekly_capacity_days' => 5.0,
-                'monthly_capacity_days' => 20.0,
+                'weekly_capacity_hours' => 40.0,
+                'monthly_capacity_hours' => 160.0,
             ]);
 
         $response->assertSessionHasErrors('password');
@@ -114,15 +114,15 @@ class UserCrudTest extends TestCase
             'name' => 'New Name',
             'email' => $user->email,
             'role' => 'user',
-            'weekly_capacity_days' => 4.0,
-            'monthly_capacity_days' => 18.0,
+            'weekly_capacity_hours' => 32.0,
+            'monthly_capacity_hours' => 144.0,
         ]);
 
         $response->assertRedirect(route('admin.users.index'));
 
         $user->refresh();
         $this->assertSame('New Name', $user->name);
-        $this->assertSame('4.0', (string) $user->weekly_capacity_days);
+        $this->assertSame('32.00', (string) $user->weekly_capacity_hours);
     }
 
     public function test_update_does_not_change_password_when_blank(): void
@@ -135,8 +135,8 @@ class UserCrudTest extends TestCase
             'name' => $user->name,
             'email' => $user->email,
             'role' => 'user',
-            'weekly_capacity_days' => 5.0,
-            'monthly_capacity_days' => 20.0,
+            'weekly_capacity_hours' => 40.0,
+            'monthly_capacity_hours' => 160.0,
             // password left blank
         ]);
 
@@ -153,8 +153,8 @@ class UserCrudTest extends TestCase
             'name' => $user->name,
             'email' => $user->email,
             'role' => 'user',
-            'weekly_capacity_days' => 5.0,
-            'monthly_capacity_days' => 20.0,
+            'weekly_capacity_hours' => 40.0,
+            'monthly_capacity_hours' => 160.0,
             'password' => 'brand-new-pass-123',
             'password_confirmation' => 'brand-new-pass-123',
         ]);
@@ -201,8 +201,8 @@ class UserCrudTest extends TestCase
                 'name' => $admin->name,
                 'email' => $admin->email,
                 'role' => 'user', // demotion attempt
-                'weekly_capacity_days' => 5.0,
-                'monthly_capacity_days' => 20.0,
+                'weekly_capacity_hours' => 40.0,
+                'monthly_capacity_hours' => 160.0,
             ]);
 
         $response->assertSessionHasErrors('role');
@@ -238,8 +238,8 @@ class UserCrudTest extends TestCase
             'name' => $u->name,
             'email' => $u->email,
             'role' => 'admin',
-            'weekly_capacity_days' => 5.0,
-            'monthly_capacity_days' => 20.0,
+            'weekly_capacity_hours' => 40.0,
+            'monthly_capacity_hours' => 160.0,
         ]);
 
         // Now $a1 can be demoted (someone else is admin).
@@ -247,8 +247,8 @@ class UserCrudTest extends TestCase
             'name' => $a1->name,
             'email' => $a1->email,
             'role' => 'user',
-            'weekly_capacity_days' => 5.0,
-            'monthly_capacity_days' => 20.0,
+            'weekly_capacity_hours' => 40.0,
+            'monthly_capacity_hours' => 160.0,
         ]);
 
         $response->assertSessionHasNoErrors();

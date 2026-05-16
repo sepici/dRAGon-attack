@@ -16,13 +16,13 @@ use Illuminate\Support\Facades\DB;
  * Encapsulates the transactional logic so the controller stays tiny:
  *
  *   1. For each existing plan_item we received an update for:
- *        - update days_spent + notes
+ *        - update hours_spent + notes
  *        - if marked complete → set completed_at, status=G, increment the
- *          underlying Deliverable.days_spent (cumulative master counter)
+ *          underlying Deliverable.hours_spent (cumulative master counter)
  *        - if NOT marked complete → recolour based on deadline + spend:
  *              past deadline → R
- *              any days spent → A
- *              else           → leave status unchanged
+ *              any hours spent → A
+ *              else            → leave status unchanged
  *
  *   2. For each ad-hoc item submitted (unplanned work):
  *        - insert a new plan_item with deliverable_id=NULL, ad_hoc_name set,
@@ -34,9 +34,9 @@ use Illuminate\Support\Facades\DB;
 class WeeklyReviewService
 {
     /**
-     * @param array<int,array{days_spent?:float,notes?:?string,completed?:bool}> $itemUpdates
+     * @param array<int,array{hours_spent?:float,notes?:?string,completed?:bool}> $itemUpdates
      *        Keyed by plan_item id.
-     * @param array<int,array{name:string,days_spent:float,notes?:?string}> $adHocItems
+     * @param array<int,array{name:string,hours_spent:float,notes?:?string}> $adHocItems
      */
     public function process(PlanPeriod $period, array $itemUpdates, array $adHocItems): void
     {
@@ -46,14 +46,6 @@ class WeeklyReviewService
         });
     }
 
-    /**
-     * Copy not-yet-completed plan_items from $period to the next weekly
-     * period (creating that period if it doesn't exist).
-     *
-     * Idempotent for the same item — items already present on the next
-     * period (matched by deliverable_id) are skipped, so the user can
-     * click the button twice without producing duplicates.
-     */
     public function rollForward(PlanPeriod $period): PlanPeriod
     {
         if ($period->kind !== PlanKind::Weekly) {
@@ -76,7 +68,6 @@ class WeeklyReviewService
                 ->whereNull('completed_at')
                 ->get()
                 ->each(function (PlanItem $item) use ($nextPeriod) {
-                    // Skip if already in next period.
                     $exists = $nextPeriod->items()
                         ->where('deliverable_id', $item->deliverable_id)
                         ->exists();
@@ -85,8 +76,8 @@ class WeeklyReviewService
                     }
                     $nextPeriod->items()->create([
                         'deliverable_id' => $item->deliverable_id,
-                        'allocated_days' => $item->allocated_days,
-                        'days_spent' => 0,
+                        'allocated_hours' => $item->allocated_hours,
+                        'hours_spent' => 0,
                         'notes' => $item->notes,
                         'status' => Status::Red,
                     ]);
@@ -104,15 +95,15 @@ class WeeklyReviewService
             /** @var PlanItem|null $item */
             $item = $period->items()->where('id', (int) $itemId)->first();
             if (! $item) {
-                continue; // ignore stale ids (item was deleted between page-load and submit)
+                continue;
             }
 
-            $daysSpent = (float) ($update['days_spent'] ?? 0);
-            $previousDaysSpent = (float) $item->days_spent;
+            $hoursSpent = (float) ($update['hours_spent'] ?? 0);
+            $previousHoursSpent = (float) $item->hours_spent;
             $previouslyCompleted = ! is_null($item->completed_at);
             $markComplete = (bool) ($update['completed'] ?? false);
 
-            $item->days_spent = $daysSpent;
+            $item->hours_spent = $hoursSpent;
             $item->notes = $update['notes'] ?? null;
 
             if ($markComplete) {
@@ -125,17 +116,14 @@ class WeeklyReviewService
 
             $item->save();
 
-            // Master deliverable.days_spent counter: only roll the delta of
+            // Master deliverable.hours_spent counter: only roll the delta of
             // an explicitly-completed item back to the Deliverable, and only
-            // the first time. (Repeated saves of an already-completed item
-            // don't keep adding.)
+            // the first time.
             if ($markComplete && ! $previouslyCompleted && $item->deliverable_id) {
-                $item->deliverable->increment('days_spent', $daysSpent);
+                $item->deliverable->increment('hours_spent', $hoursSpent);
             }
-            // If user un-completes an item, withdraw the days from the
-            // deliverable counter.
             if (! $markComplete && $previouslyCompleted && $item->deliverable_id) {
-                $item->deliverable->decrement('days_spent', $previousDaysSpent);
+                $item->deliverable->decrement('hours_spent', $previousHoursSpent);
             }
         }
     }
@@ -147,7 +135,7 @@ class WeeklyReviewService
         if ($deliverable && $deliverable->deadline && Carbon::parse($deliverable->deadline)->isPast()) {
             return Status::Red;
         }
-        if ((float) $item->days_spent > 0) {
+        if ((float) $item->hours_spent > 0) {
             return Status::Amber;
         }
         return $item->status; // leave unchanged
@@ -158,15 +146,15 @@ class WeeklyReviewService
         foreach ($adHocItems as $entry) {
             $name = trim((string) ($entry['name'] ?? ''));
             if ($name === '') {
-                continue; // skip blank rows from dynamic add-row UI
+                continue;
             }
 
             $period->items()->create([
                 'deliverable_id' => null,
                 'ad_hoc_name' => $name,
                 'ad_hoc_notes' => $entry['notes'] ?? null,
-                'allocated_days' => 0,
-                'days_spent' => (float) ($entry['days_spent'] ?? 0),
+                'allocated_hours' => 0,
+                'hours_spent' => (float) ($entry['hours_spent'] ?? 0),
                 'completed_at' => now(),
                 'status' => Status::Green,
             ]);

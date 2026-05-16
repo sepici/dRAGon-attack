@@ -45,13 +45,13 @@ class PlanItemCrudTest extends TestCase
             ->post('/plan-items', [
                 'plan_period_id' => $period->id,
                 'deliverable_id' => $deliverable->id,
-                'allocated_days' => 2.5,
+                'allocated_hours' => 20.0,
             ]);
 
         $response->assertRedirect();
         $item = PlanItem::where('plan_period_id', $period->id)->firstOrFail();
         $this->assertSame($deliverable->id, $item->deliverable_id);
-        $this->assertEqualsWithDelta(2.5, (float) $item->allocated_days, 0.01);
+        $this->assertEqualsWithDelta(20.0, (float) $item->allocated_hours, 0.01);
     }
 
     public function test_cannot_add_same_deliverable_twice_to_one_period(): void
@@ -60,7 +60,7 @@ class PlanItemCrudTest extends TestCase
         PlanItem::factory()->create([
             'plan_period_id' => $period->id,
             'deliverable_id' => $deliverable->id,
-            'allocated_days' => 1.0,
+            'allocated_hours' => 8.0,
         ]);
 
         $response = $this->actingAs($user)
@@ -68,14 +68,14 @@ class PlanItemCrudTest extends TestCase
             ->post('/plan-items', [
                 'plan_period_id' => $period->id,
                 'deliverable_id' => $deliverable->id,
-                'allocated_days' => 1.0,
+                'allocated_hours' => 8.0,
             ]);
 
         $response->assertSessionHasErrors('deliverable_id');
         $this->assertSame(1, PlanItem::where('plan_period_id', $period->id)->count());
     }
 
-    public function test_allocated_days_must_be_half_day_increment(): void
+    public function test_allocated_hours_must_be_half_hour_increment(): void
     {
         [$user, $deliverable, $period] = $this->makeOwnedChain();
 
@@ -84,10 +84,10 @@ class PlanItemCrudTest extends TestCase
             ->post('/plan-items', [
                 'plan_period_id' => $period->id,
                 'deliverable_id' => $deliverable->id,
-                'allocated_days' => 1.3,
+                'allocated_hours' => 1.3, // not a 0.5 multiple
             ]);
 
-        $response->assertSessionHasErrors('allocated_days');
+        $response->assertSessionHasErrors('allocated_hours');
     }
 
     public function test_cannot_add_deliverable_owned_by_someone_else(): void
@@ -103,7 +103,7 @@ class PlanItemCrudTest extends TestCase
             ->post('/plan-items', [
                 'plan_period_id' => $periodOfA->id,
                 'deliverable_id' => $deliverableOfB->id,
-                'allocated_days' => 1.0,
+                'allocated_hours' => 8.0,
             ]);
 
         $response->assertSessionHasErrors('deliverable_id');
@@ -125,26 +125,26 @@ class PlanItemCrudTest extends TestCase
             ->post('/plan-items', [
                 'plan_period_id' => $periodOfB->id, // someone else's period
                 'deliverable_id' => $deliverableA->id,
-                'allocated_days' => 1.0,
+                'allocated_hours' => 8.0,
             ]);
 
         $response->assertSessionHasErrors('plan_period_id');
     }
 
-    public function test_user_can_update_allocated_days(): void
+    public function test_user_can_update_allocated_hours(): void
     {
         [$user, $deliverable, $period] = $this->makeOwnedChain();
         $item = PlanItem::factory()->create([
             'plan_period_id' => $period->id,
             'deliverable_id' => $deliverable->id,
-            'allocated_days' => 1.0,
+            'allocated_hours' => 8.0,
         ]);
 
         $this->actingAs($user)
             ->from('/plans/weekly')
-            ->put("/plan-items/{$item->id}", ['allocated_days' => 3.5]);
+            ->put("/plan-items/{$item->id}", ['allocated_hours' => 28.0]);
 
-        $this->assertEqualsWithDelta(3.5, (float) $item->fresh()->allocated_days, 0.01);
+        $this->assertEqualsWithDelta(28.0, (float) $item->fresh()->allocated_hours, 0.01);
     }
 
     public function test_cannot_update_someone_elses_item(): void
@@ -158,14 +158,14 @@ class PlanItemCrudTest extends TestCase
         $item = PlanItem::factory()->create([
             'plan_period_id' => $periodOfB->id,
             'deliverable_id' => $deliverableOfB->id,
-            'allocated_days' => 1.0,
+            'allocated_hours' => 8.0,
         ]);
 
         $response = $this->actingAs($userA)
-            ->put("/plan-items/{$item->id}", ['allocated_days' => 99.0]);
+            ->put("/plan-items/{$item->id}", ['allocated_hours' => 800.0]);
 
         $response->assertForbidden();
-        $this->assertEqualsWithDelta(1.0, (float) $item->fresh()->allocated_days, 0.01);
+        $this->assertEqualsWithDelta(8.0, (float) $item->fresh()->allocated_hours, 0.01);
     }
 
     public function test_user_can_remove_their_plan_item(): void
@@ -199,27 +199,27 @@ class PlanItemCrudTest extends TestCase
     public function test_capacity_and_overunder_reflect_plan_items(): void
     {
         $user = User::factory()->create([
-            'weekly_capacity_days' => 5.0,
+            'weekly_capacity_hours' => 40.0,
         ]);
         $client = Client::factory()->create(['owner_id' => $user->id]);
         $project = Project::factory()->create(['owner_id' => $user->id, 'client_id' => $client->id]);
         $period = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
 
-        // Plan 6 days against a 5-day capacity → +1 over.
+        // Plan 48h against a 40h capacity → +8h over.
         PlanItem::factory()->create([
             'plan_period_id' => $period->id,
             'deliverable_id' => Deliverable::factory()->create(['project_id' => $project->id])->id,
-            'allocated_days' => 3.0,
+            'allocated_hours' => 24.0,
         ]);
         PlanItem::factory()->create([
             'plan_period_id' => $period->id,
             'deliverable_id' => Deliverable::factory()->create(['project_id' => $project->id])->id,
-            'allocated_days' => 3.0,
+            'allocated_hours' => 24.0,
         ]);
 
         $period->refresh();
-        $this->assertEqualsWithDelta(6.0, $period->totalAllocated(), 0.01);
-        $this->assertEqualsWithDelta(5.0, $period->capacity(), 0.01);
-        $this->assertEqualsWithDelta(1.0, $period->overUnder(), 0.01);
+        $this->assertEqualsWithDelta(48.0, $period->totalAllocated(), 0.01);
+        $this->assertEqualsWithDelta(40.0, $period->capacity(), 0.01);
+        $this->assertEqualsWithDelta(8.0, $period->overUnder(), 0.01);
     }
 }

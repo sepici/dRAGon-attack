@@ -113,26 +113,26 @@ class PlanPeriod extends Model
         return $this->hasMany(PlanItem::class)->orderBy('sort_order')->orderBy('id');
     }
 
-    // ---------- Aggregates --------------------------------------------------
+    // ---------- Aggregates (all in hours) -----------------------------------
 
-    /** Sum of allocated_days across all items in this period. */
+    /** Sum of allocated_hours across all items in this period. */
     public function totalAllocated(): float
     {
-        return (float) $this->items()->sum('allocated_days');
+        return (float) $this->items()->sum('allocated_hours');
     }
 
-    /** The user's capacity for THIS kind of period (from their User profile). */
+    /** The user's capacity for THIS kind of period (in hours). */
     public function capacity(): float
     {
         return match ($this->kind) {
-            PlanKind::Weekly => (float) $this->owner->weekly_capacity_days,
-            PlanKind::Monthly => (float) $this->owner->monthly_capacity_days,
+            PlanKind::Weekly => (float) $this->owner->weekly_capacity_hours,
+            PlanKind::Monthly => (float) $this->owner->monthly_capacity_hours,
             // Quarterly capacity ≈ 3 × monthly capacity (no separate column).
-            PlanKind::Quarterly => 3.0 * (float) $this->owner->monthly_capacity_days,
+            PlanKind::Quarterly => 3.0 * (float) $this->owner->monthly_capacity_hours,
         };
     }
 
-    /** Difference: planned − capacity. Positive = over-committed. */
+    /** Difference: planned − capacity, in hours. Positive = over-committed. */
     public function overUnder(): float
     {
         return $this->totalAllocated() - $this->capacity();

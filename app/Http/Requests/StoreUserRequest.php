@@ -25,12 +25,12 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:180', 'unique:users,email'],
             'password' => ['required', 'string', Password::defaults(), 'confirmed'],
             'role' => ['required', Rule::enum(UserRole::class)],
-            'weekly_capacity_days' => [
-                'required', 'numeric', 'min:0', 'max:7',
+            'weekly_capacity_hours' => [
+                'required', 'numeric', 'min:0', 'max:168',
                 'multiple_of:0.5',
             ],
-            'monthly_capacity_days' => [
-                'required', 'numeric', 'min:0', 'max:31',
+            'monthly_capacity_hours' => [
+                'required', 'numeric', 'min:0', 'max:744',
                 'multiple_of:0.5',
             ],
         ];

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Support\TimeUnits;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,8 +25,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'weekly_capacity_days',
-        'monthly_capacity_days',
+        'weekly_capacity_hours',
+        'monthly_capacity_hours',
     ];
 
     /**
@@ -47,8 +48,8 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'role' => UserRole::class,
-        'weekly_capacity_days' => 'decimal:1',
-        'monthly_capacity_days' => 'decimal:1',
+        'weekly_capacity_hours' => 'decimal:2',
+        'monthly_capacity_hours' => 'decimal:2',
     ];
 
     // ---------- Role helpers ------------------------------------------------
@@ -91,5 +92,17 @@ class User extends Authenticatable
     public function reports(): HasMany
     {
         return $this->hasMany(Report::class, 'owner_id');
+    }
+
+    // ---------- Capacity helpers (derived days view) -----------------------
+
+    public function getWeeklyCapacityDaysAttribute(): float
+    {
+        return TimeUnits::daysFromHours($this->weekly_capacity_hours);
+    }
+
+    public function getMonthlyCapacityDaysAttribute(): float
+    {
+        return TimeUnits::daysFromHours($this->monthly_capacity_hours);
     }
 }

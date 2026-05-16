@@ -81,17 +81,17 @@ class PlanPeriodTest extends TestCase
     public function test_capacity_uses_user_weekly_value(): void
     {
         $user = User::factory()->create([
-            'weekly_capacity_days' => 4.0,
-            'monthly_capacity_days' => 18.0,
+            'weekly_capacity_hours' => 32.0,
+            'monthly_capacity_hours' => 144.0,
         ]);
 
         $weekly = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
         $monthly = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Monthly);
         $quarterly = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Quarterly);
 
-        $this->assertEqualsWithDelta(4.0, $weekly->capacity(), 0.01);
-        $this->assertEqualsWithDelta(18.0, $monthly->capacity(), 0.01);
+        $this->assertEqualsWithDelta(32.0, $weekly->capacity(), 0.01);
+        $this->assertEqualsWithDelta(144.0, $monthly->capacity(), 0.01);
         // Quarterly = 3 × monthly
-        $this->assertEqualsWithDelta(54.0, $quarterly->capacity(), 0.01);
+        $this->assertEqualsWithDelta(432.0, $quarterly->capacity(), 0.01);
     }
 }

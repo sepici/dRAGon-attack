@@ -51,8 +51,8 @@ class StorePlanItemRequest extends FormRequest
                 },
             ],
 
-            'allocated_days' => [
-                'required', 'numeric', 'min:0', 'max:999', 'multiple_of:0.5',
+            'allocated_hours' => [
+                'required', 'numeric', 'min:0', 'max:9999', 'multiple_of:0.5',
             ],
         ];
     }

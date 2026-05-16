@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Status;
+use App\Support\TimeUnits;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,8 +17,8 @@ class PlanItem extends Model
         'deliverable_id',
         'ad_hoc_name',
         'ad_hoc_notes',
-        'allocated_days',
-        'days_spent',
+        'allocated_hours',
+        'hours_spent',
         'notes',
         'status',
         'completed_at',
@@ -25,8 +26,8 @@ class PlanItem extends Model
     ];
 
     protected $casts = [
-        'allocated_days' => 'decimal:1',
-        'days_spent' => 'decimal:1',
+        'allocated_hours' => 'decimal:2',
+        'hours_spent' => 'decimal:2',
         'status' => Status::class,
         'completed_at' => 'datetime',
     ];
@@ -45,17 +46,27 @@ class PlanItem extends Model
 
     // ---------- Convenience -------------------------------------------------
 
-    /** True when this row represents unplanned work (no deliverable link). */
     public function isAdHoc(): bool
     {
         return is_null($this->deliverable_id);
     }
 
-    /** Display name — deliverable's name or the ad-hoc label. */
     public function displayName(): string
     {
         return $this->isAdHoc()
             ? ($this->ad_hoc_name ?? '(unnamed)')
             : ($this->deliverable->name ?? '(missing deliverable)');
+    }
+
+    /** Derived days view of allocated_hours. */
+    public function getAllocatedDaysAttribute(): float
+    {
+        return TimeUnits::daysFromHours($this->allocated_hours);
+    }
+
+    /** Derived days view of hours_spent. */
+    public function getDaysSpentAttribute(): float
+    {
+        return TimeUnits::daysFromHours($this->hours_spent);
     }
 }

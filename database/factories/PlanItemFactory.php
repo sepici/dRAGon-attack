@@ -18,8 +18,8 @@ class PlanItemFactory extends Factory
         return [
             'plan_period_id' => PlanPeriod::factory(),
             'deliverable_id' => Deliverable::factory(),
-            'allocated_days' => 1.0,
-            'days_spent' => 0,
+            'allocated_hours' => 8.0,
+            'hours_spent' => 0,
             'status' => Status::Red,
         ];
     }

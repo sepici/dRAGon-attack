@@ -1,3 +1,4 @@
+@php use App\Support\TimeUnits; @endphp
 <x-app-layout>
     <x-slot name="title">{{ $deliverable->name }}</x-slot>
 
@@ -54,16 +55,16 @@
                         </dd>
                     </div>
                     <div>
-                        <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target days</dt>
-                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ number_format((float) $deliverable->target_days, 1) }}</dd>
+                        <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target</dt>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($deliverable->target_hours) }}</dd>
                     </div>
                     <div>
-                        <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Days spent</dt>
-                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ number_format((float) $deliverable->days_spent, 1) }}</dd>
+                        <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Spent</dt>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($deliverable->hours_spent) }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Remaining</dt>
-                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ number_format($deliverable->remaining_days, 1) }}</dd>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($deliverable->remaining_hours) }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">MoSCoW</dt>

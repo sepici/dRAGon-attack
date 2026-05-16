@@ -92,21 +92,22 @@
         <x-input-error class="mt-2" :messages="$errors->get('description')" />
     </div>
 
-    {{-- Target / Spent days + Deadline --}}
+    {{-- Target / Spent hours + Deadline --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-            <x-input-label for="target_days" :value="__('Target days')" />
-            <x-text-input id="target_days" name="target_days" type="number"
+            <x-input-label for="target_hours" :value="__('Target hours')" />
+            <x-text-input id="target_hours" name="target_hours" type="number"
                 step="0.5" min="0" class="mt-1 block w-full"
-                :value="old('target_days', $deliverable->target_days ?? 0)" required />
-            <x-input-error class="mt-2" :messages="$errors->get('target_days')" />
+                :value="old('target_hours', $deliverable->target_hours ?? 0)" required />
+            <x-input-error class="mt-2" :messages="$errors->get('target_hours')" />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">8h = 1 day. Half-hour increments.</p>
         </div>
         <div>
-            <x-input-label for="days_spent" :value="__('Days spent so far')" />
-            <x-text-input id="days_spent" name="days_spent" type="number"
+            <x-input-label for="hours_spent" :value="__('Hours spent so far')" />
+            <x-text-input id="hours_spent" name="hours_spent" type="number"
                 step="0.5" min="0" class="mt-1 block w-full"
-                :value="old('days_spent', $deliverable->days_spent ?? 0)" />
-            <x-input-error class="mt-2" :messages="$errors->get('days_spent')" />
+                :value="old('hours_spent', $deliverable->hours_spent ?? 0)" />
+            <x-input-error class="mt-2" :messages="$errors->get('hours_spent')" />
         </div>
         <div>
             <x-input-label for="deadline" :value="__('Deadline (optional)')" />

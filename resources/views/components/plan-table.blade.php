@@ -10,12 +10,12 @@
     // Show the "Client" column. Same idea — hide on a client-scoped page.
     'showClient' => true,
 
-    // Show an extra "Allocated (d)" column. Used by Weekly/Monthly/Quarterly
+    // Show an extra "Allocated" column. Used by Weekly/Monthly/Quarterly
     // plan views; not used on the master Deliverables table.
     'showAllocation' => false,
 
-    // Map of deliverable_id => allocated_days (decimal). Only consulted when
-    // showAllocation is true.
+    // Map of deliverable_id => allocated_hours (decimal). Only consulted
+    // when showAllocation is true.
     'allocations' => [],
 
     // Friendly empty state text.
@@ -26,13 +26,13 @@
     'openRoute' => 'deliverables.show',
 ])
 
-{{-- Total target / spent / allocated rows for the footer summary --}}
 @php
-    $totalTarget = $deliverables->sum(fn ($d) => (float) $d->target_days);
-    $totalSpent = $deliverables->sum(fn ($d) => (float) $d->days_spent);
-    $totalAllocated = $showAllocation
-        ? collect($allocations)->sum()
-        : null;
+    use App\Support\TimeUnits;
+
+    // Totals: hours are the source of truth.
+    $totalTargetHours = $deliverables->sum(fn ($d) => (float) $d->target_hours);
+    $totalSpentHours = $deliverables->sum(fn ($d) => (float) $d->hours_spent);
+    $totalAllocatedHours = $showAllocation ? collect($allocations)->sum() : null;
 @endphp
 
 <div {{ $attributes->merge(['class' => 'bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg']) }}>
@@ -47,11 +47,11 @@
                     @if ($showClient)
                         <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Client</th>
                     @endif
-                    <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target&nbsp;(d)</th>
+                    <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Target</th>
                     @if ($showAllocation)
-                        <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Allocated&nbsp;(d)</th>
+                        <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Allocated</th>
                     @endif
-                    <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Spent&nbsp;(d)</th>
+                    <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Spent</th>
                     <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deadline</th>
                     <th class="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">MoSCoW</th>
                     <th class="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
@@ -79,15 +79,15 @@
                             </td>
                         @endif
                         <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                            {{ number_format((float) $deliverable->target_days, 1) }}
+                            {{ TimeUnits::formatHoursWithDays($deliverable->target_hours) }}
                         </td>
                         @if ($showAllocation)
                             <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                                {{ number_format((float) ($allocations[$deliverable->id] ?? 0), 1) }}
+                                {{ TimeUnits::formatHoursWithDays($allocations[$deliverable->id] ?? 0) }}
                             </td>
                         @endif
                         <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                            {{ number_format((float) $deliverable->days_spent, 1) }}
+                            {{ TimeUnits::formatHoursWithDays($deliverable->hours_spent) }}
                         </td>
                         <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                             {{ $deliverable->deadline ? $deliverable->deadline->format('d M') : '—' }}
@@ -115,7 +115,6 @@
                     </tr>
                 @empty
                     @php
-                        // colspan accounts for optional columns
                         $cols = 6 + ($showProject ? 1 : 0) + ($showClient ? 1 : 0) + ($showAllocation ? 1 : 0);
                     @endphp
                     <tr>
@@ -126,7 +125,6 @@
                 @endforelse
             </tbody>
 
-            {{-- Totals footer (only when there are rows) --}}
             @if ($deliverables->isNotEmpty())
                 <tfoot class="bg-gray-50 dark:bg-gray-900/30 font-medium">
                     <tr>
@@ -135,15 +133,15 @@
                             Totals
                         </td>
                         <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">
-                            {{ number_format($totalTarget, 1) }}
+                            {{ TimeUnits::formatHoursWithDays($totalTargetHours) }}
                         </td>
                         @if ($showAllocation)
                             <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">
-                                {{ number_format($totalAllocated, 1) }}
+                                {{ TimeUnits::formatHoursWithDays($totalAllocatedHours) }}
                             </td>
                         @endif
                         <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">
-                            {{ number_format($totalSpent, 1) }}
+                            {{ TimeUnits::formatHoursWithDays($totalSpentHours) }}
                         </td>
                         <td colspan="4">&nbsp;</td>
                     </tr>

@@ -1,4 +1,6 @@
 @php
+    use App\Support\TimeUnits;
+
     $totalDeliverables = array_sum($statusCounts);
 
     $capacityCards = [
@@ -54,13 +56,13 @@
                        class="block bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 hover:ring-2 hover:ring-indigo-500/30 transition">
                         <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ $card['label'] }}</p>
                         <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
-                            {{ number_format($allocated, 1) }}<span class="text-base font-medium text-gray-500 dark:text-gray-400">/{{ number_format($cap, 1) }}d planned</span>
+                            {{ TimeUnits::formatHoursWithDays($allocated) }}<span class="text-base font-medium text-gray-500 dark:text-gray-400"> / {{ TimeUnits::formatHoursWithDays($cap) }} planned</span>
                         </p>
                         <p class="mt-1 text-sm {{ $overClass }} font-medium">
                             @if ($over > 0)
-                                +{{ number_format($over, 1) }}d over capacity
+                                +{{ TimeUnits::formatHoursWithDays($over) }} over capacity
                             @elseif ($over < 0)
-                                {{ number_format(abs($over), 1) }}d headroom
+                                {{ TimeUnits::formatHoursWithDays(abs($over)) }} headroom
                             @else
                                 Exactly to capacity
                             @endif
@@ -149,7 +151,7 @@
                                     </div>
                                     <div class="flex items-center gap-3 ml-4">
                                         <span class="text-xs text-gray-700 dark:text-gray-300">{{ $d->completed_at->diffForHumans(['short' => true]) }}</span>
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ number_format((float) $d->days_spent, 1) }}d</span>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ TimeUnits::formatHoursWithDays($d->hours_spent) }}</span>
                                     </div>
                                 </li>
                             @endforeach

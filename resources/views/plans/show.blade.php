@@ -1,4 +1,6 @@
 @php
+    use App\Support\TimeUnits;
+
     $rangeText = $period->starts_on->format('d M Y') . ' → ' . $period->ends_on->format('d M Y');
     $overUnderColor = $overUnder > 0
         ? 'text-red-600 dark:text-red-400'
@@ -50,7 +52,7 @@
                             Capacity ({{ $kind->thisPeriodLabel() }})
                         </dt>
                         <dd class="mt-1 text-3xl font-bold text-gray-900 dark:text-gray-100">
-                            {{ number_format($capacity, 1) }} <span class="text-sm font-medium text-gray-500 dark:text-gray-400">days</span>
+                            {{ TimeUnits::formatHoursWithDays($capacity) }}
                         </dd>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             @if ($kind === \App\Enums\PlanKind::Quarterly)
@@ -65,7 +67,7 @@
                             Planned (allocated)
                         </dt>
                         <dd class="mt-1 text-3xl font-bold text-gray-900 dark:text-gray-100">
-                            {{ number_format($totalAllocated, 1) }} <span class="text-sm font-medium text-gray-500 dark:text-gray-400">days</span>
+                            {{ TimeUnits::formatHoursWithDays($totalAllocated) }}
                         </dd>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             Sum across {{ $items->count() }} deliverable(s) on this plan.
@@ -79,15 +81,14 @@
                             @if ($overUnder == 0)
                                 Even
                             @else
-                                {{ $overUnder > 0 ? '+' : '' }}{{ number_format($overUnder, 1) }}
-                                <span class="text-sm font-medium">days</span>
+                                {{ $overUnder > 0 ? '+' : '' }}{{ TimeUnits::formatHoursWithDays($overUnder) }}
                             @endif
                         </dd>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             @if ($overUnder > 0)
-                                {{ $overUnderLabel }} {{ number_format(abs($overUnder), 1) }} days — push items to backlog or extend the deadline.
+                                {{ $overUnderLabel }} {{ TimeUnits::formatHoursWithDays(abs($overUnder)) }} — push items to backlog or extend the deadline.
                             @elseif ($overUnder < 0)
-                                You have {{ number_format(abs($overUnder), 1) }} days of headroom.
+                                You have {{ TimeUnits::formatHoursWithDays(abs($overUnder)) }} of headroom.
                             @else
                                 Allocated exactly to capacity.
                             @endif
@@ -108,9 +109,9 @@
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deliverable</th>
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Project</th>
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Client</th>
-                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target&nbsp;(d)</th>
-                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Allocated&nbsp;(d)</th>
-                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Spent&nbsp;(d)</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Target</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours">Allocated&nbsp;(h)</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="hours (days)">Spent</th>
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deadline</th>
                                 <th class="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">MoSCoW</th>
                                 <th class="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
@@ -129,14 +130,14 @@
                                     </td>
                                     <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $d->project->client->legal_name }}</td>
                                     <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                                        {{ number_format((float) $d->target_days, 1) }}
+                                        {{ TimeUnits::formatHoursWithDays($d->target_hours) }}
                                     </td>
                                     <td class="px-3 py-3 whitespace-nowrap text-sm text-right">
                                         <form method="POST" action="{{ route('plan-items.update', $item) }}" class="flex items-center justify-end gap-1">
                                             @csrf
                                             @method('PUT')
-                                            <input type="number" name="allocated_days" step="0.5" min="0"
-                                                value="{{ number_format((float) $item->allocated_days, 1) }}"
+                                            <input type="number" name="allocated_hours" step="0.5" min="0"
+                                                value="{{ number_format((float) $item->allocated_hours, 1) }}"
                                                 class="w-20 text-right text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
                                             <button class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-200">
                                                 Save
@@ -144,7 +145,7 @@
                                         </form>
                                     </td>
                                     <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                                        {{ number_format((float) $d->days_spent, 1) }}
+                                        {{ TimeUnits::formatHoursWithDays($d->hours_spent) }}
                                     </td>
                                     <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                                         {{ $d->deadline ? $d->deadline->format('d M') : '—' }}
@@ -181,8 +182,8 @@
                             <tfoot class="bg-gray-50 dark:bg-gray-900/30 font-medium">
                                 <tr>
                                     <td class="px-3 py-2 text-right text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400" colspan="4">Totals</td>
-                                    <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{{ number_format($totalAllocated, 1) }}</td>
-                                    <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{{ number_format((float) $items->sum(fn ($it) => $it->deliverable->days_spent), 1) }}</td>
+                                    <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($totalAllocated) }}</td>
+                                    <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{{ TimeUnits::formatHoursWithDays($items->sum(fn ($it) => $it->deliverable->hours_spent)) }}</td>
                                     <td colspan="4">&nbsp;</td>
                                 </tr>
                             </tfoot>
@@ -224,14 +225,15 @@
                                 <x-input-error class="mt-2" :messages="$errors->get('deliverable_id')" />
                             </div>
                             <div>
-                                <x-input-label for="allocated_days" :value="__('Days')" />
+                                <x-input-label for="allocated_hours" :value="__('Hours')" />
                                 <div class="flex items-center gap-2 mt-1">
-                                    <x-text-input id="allocated_days" name="allocated_days" type="number"
+                                    <x-text-input id="allocated_hours" name="allocated_hours" type="number"
                                         step="0.5" min="0" class="w-24 text-right"
-                                        value="{{ old('allocated_days', 1.0) }}" required />
+                                        value="{{ old('allocated_hours', 8.0) }}" required />
                                     <x-primary-button>{{ __('Add') }}</x-primary-button>
                                 </div>
-                                <x-input-error class="mt-2" :messages="$errors->get('allocated_days')" />
+                                <x-input-error class="mt-2" :messages="$errors->get('allocated_hours')" />
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">8h = 1 day.</p>
                             </div>
                         </form>
                     @endif

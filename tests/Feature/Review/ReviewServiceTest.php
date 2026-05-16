@@ -42,14 +42,14 @@ class ReviewServiceTest extends TestCase
         ]);
         $deliverable = Deliverable::factory()->create(array_merge([
             'project_id' => $project->id,
-            'days_spent' => 0,
+            'hours_spent' => 0,
         ], $deliverableOverrides));
         $period = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
         $item = PlanItem::factory()->create(array_merge([
             'plan_period_id' => $period->id,
             'deliverable_id' => $deliverable->id,
-            'allocated_days' => 2.0,
-            'days_spent' => 0,
+            'allocated_hours' => 16.0,
+            'hours_spent' => 0,
             'status' => Status::Red,
         ], $itemOverrides));
 
@@ -63,43 +63,43 @@ class ReviewServiceTest extends TestCase
         [, , $period, $item] = $this->setupChain();
 
         $this->service->process($period, [
-            $item->id => ['days_spent' => 2.0, 'completed' => true, 'notes' => 'shipped'],
+            $item->id => ['hours_spent' => 16.0, 'completed' => true, 'notes' => 'shipped'],
         ], []);
 
         $item->refresh();
         $this->assertSame(Status::Green, $item->status);
         $this->assertNotNull($item->completed_at);
-        $this->assertEqualsWithDelta(2.0, (float) $item->days_spent, 0.01);
+        $this->assertEqualsWithDelta(16.0, (float) $item->hours_spent, 0.01);
         $this->assertSame('shipped', $item->notes);
     }
 
-    public function test_marking_complete_increments_deliverable_cumulative_days_spent(): void
+    public function test_marking_complete_increments_deliverable_cumulative_hours_spent(): void
     {
-        [, $deliverable, $period, $item] = $this->setupChain(['days_spent' => 4.0]);
+        [, $deliverable, $period, $item] = $this->setupChain(['hours_spent' => 32.0]);
 
         $this->service->process($period, [
-            $item->id => ['days_spent' => 1.5, 'completed' => true],
+            $item->id => ['hours_spent' => 12.0, 'completed' => true],
         ], []);
 
-        $this->assertEqualsWithDelta(5.5, (float) $deliverable->fresh()->days_spent, 0.01);
+        $this->assertEqualsWithDelta(44.0, (float) $deliverable->fresh()->hours_spent, 0.01);
     }
 
-    public function test_unmarking_an_already_complete_item_withdraws_days_from_deliverable(): void
+    public function test_unmarking_an_already_complete_item_withdraws_hours_from_deliverable(): void
     {
         // Set up an already-completed item so the service sees it as "previously complete".
         [, $deliverable, $period, $item] = $this->setupChain(
-            ['days_spent' => 2.0],
-            ['days_spent' => 2.0, 'completed_at' => now(), 'status' => Status::Green],
+            ['hours_spent' => 16.0],
+            ['hours_spent' => 16.0, 'completed_at' => now(), 'status' => Status::Green],
         );
 
         $this->service->process($period, [
-            $item->id => ['days_spent' => 2.0, 'completed' => false],
+            $item->id => ['hours_spent' => 16.0, 'completed' => false],
         ], []);
 
         $item->refresh();
         $this->assertNull($item->completed_at);
-        // Deliverable cumulative goes from 2.0 → 0.0 because we un-completed.
-        $this->assertEqualsWithDelta(0.0, (float) $deliverable->fresh()->days_spent, 0.01);
+        // Deliverable cumulative goes from 16.0 → 0.0 because we un-completed.
+        $this->assertEqualsWithDelta(0.0, (float) $deliverable->fresh()->hours_spent, 0.01);
     }
 
     public function test_repeated_save_of_already_complete_item_does_not_double_count(): void
@@ -108,15 +108,15 @@ class ReviewServiceTest extends TestCase
 
         // First review: complete it.
         $this->service->process($period, [
-            $item->id => ['days_spent' => 1.0, 'completed' => true],
+            $item->id => ['hours_spent' => 8.0, 'completed' => true],
         ], []);
-        $this->assertEqualsWithDelta(1.0, (float) $deliverable->fresh()->days_spent, 0.01);
+        $this->assertEqualsWithDelta(8.0, (float) $deliverable->fresh()->hours_spent, 0.01);
 
-        // Second save with same data — should NOT add another 1.0 to the deliverable.
+        // Second save with same data — should NOT add another 8.0 to the deliverable.
         $this->service->process($period, [
-            $item->id => ['days_spent' => 1.0, 'completed' => true],
+            $item->id => ['hours_spent' => 8.0, 'completed' => true],
         ], []);
-        $this->assertEqualsWithDelta(1.0, (float) $deliverable->fresh()->days_spent, 0.01);
+        $this->assertEqualsWithDelta(8.0, (float) $deliverable->fresh()->hours_spent, 0.01);
     }
 
     // ---------- Recolour rules ----------------------------------------------
@@ -126,18 +126,18 @@ class ReviewServiceTest extends TestCase
         [, , $period, $item] = $this->setupChain(['deadline' => null], ['status' => Status::Amber]);
 
         $this->service->process($period, [
-            $item->id => ['days_spent' => 0, 'completed' => false],
+            $item->id => ['hours_spent' => 0, 'completed' => false],
         ], []);
 
         $this->assertSame(Status::Amber, $item->fresh()->status);
     }
 
-    public function test_incomplete_item_with_days_spent_recolours_amber(): void
+    public function test_incomplete_item_with_hours_spent_recolours_amber(): void
     {
         [, , $period, $item] = $this->setupChain(['deadline' => null], ['status' => Status::Red]);
 
         $this->service->process($period, [
-            $item->id => ['days_spent' => 0.5, 'completed' => false],
+            $item->id => ['hours_spent' => 4.0, 'completed' => false],
         ], []);
 
         $this->assertSame(Status::Amber, $item->fresh()->status);
@@ -152,7 +152,7 @@ class ReviewServiceTest extends TestCase
         );
 
         $this->service->process($period, [
-            $item->id => ['days_spent' => 0.5, 'completed' => false],
+            $item->id => ['hours_spent' => 4.0, 'completed' => false],
         ], []);
 
         // Red beats amber when deadline is in the past.
@@ -166,13 +166,13 @@ class ReviewServiceTest extends TestCase
         [, , $period] = $this->setupChain();
 
         $this->service->process($period, [], [
-            ['name' => 'Emergency server fix', 'days_spent' => 0.5, 'notes' => 'Apache restart'],
+            ['name' => 'Emergency server fix', 'hours_spent' => 4.0, 'notes' => 'Apache restart'],
         ]);
 
         $adHoc = $period->items()->whereNull('deliverable_id')->first();
         $this->assertNotNull($adHoc);
         $this->assertSame('Emergency server fix', $adHoc->ad_hoc_name);
-        $this->assertEqualsWithDelta(0.5, (float) $adHoc->days_spent, 0.01);
+        $this->assertEqualsWithDelta(4.0, (float) $adHoc->hours_spent, 0.01);
         $this->assertSame(Status::Green, $adHoc->status);
         $this->assertNotNull($adHoc->completed_at);
     }
@@ -182,8 +182,8 @@ class ReviewServiceTest extends TestCase
         [, , $period] = $this->setupChain();
 
         $this->service->process($period, [], [
-            ['name' => '   ', 'days_spent' => 1.0],  // blank name
-            ['name' => 'Real item', 'days_spent' => 0.5],
+            ['name' => '   ', 'hours_spent' => 8.0],  // blank name
+            ['name' => 'Real item', 'hours_spent' => 4.0],
         ]);
 
         $this->assertSame(1, $period->items()->whereNull('deliverable_id')->count());
@@ -202,7 +202,7 @@ class ReviewServiceTest extends TestCase
         $completedItem = PlanItem::factory()->create([
             'plan_period_id' => $period->id,
             'deliverable_id' => $deliverable2->id,
-            'allocated_days' => 1.0,
+            'allocated_hours' => 8.0,
             'completed_at' => now(),
             'status' => Status::Green,
         ]);
@@ -218,9 +218,9 @@ class ReviewServiceTest extends TestCase
         $copied = $nextPeriod->items()->get();
         $this->assertCount(1, $copied);
         $this->assertSame($item->deliverable_id, $copied->first()->deliverable_id);
-        $this->assertEqualsWithDelta((float) $item->allocated_days, (float) $copied->first()->allocated_days, 0.01);
+        $this->assertEqualsWithDelta((float) $item->allocated_hours, (float) $copied->first()->allocated_hours, 0.01);
         $this->assertSame(Status::Red, $copied->first()->status);
-        $this->assertEqualsWithDelta(0.0, (float) $copied->first()->days_spent, 0.01);
+        $this->assertEqualsWithDelta(0.0, (float) $copied->first()->hours_spent, 0.01);
     }
 
     public function test_roll_forward_is_idempotent(): void

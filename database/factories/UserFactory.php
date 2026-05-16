@@ -28,8 +28,8 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'role' => UserRole::User,
-            'weekly_capacity_days' => 5.0,
-            'monthly_capacity_days' => 20.0,
+            'weekly_capacity_hours' => 40.0,
+            'monthly_capacity_hours' => 160.0,
         ];
     }
 

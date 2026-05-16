@@ -50,8 +50,8 @@ name            varchar(120)
 email           varchar(180) unique
 password        varchar(255)
 role            enum('admin','user','viewer') NOT NULL  default 'user'
-weekly_capacity_days   decimal(3,1)  default 5.0
-monthly_capacity_days  decimal(4,1)  default 20.0
+weekly_capacity_hours  decimal(5,2)  default 40.00
+monthly_capacity_hours decimal(6,2)  default 160.00
 email_verified_at      timestamp NULL
 remember_token         varchar(100) NULL
 created_at, updated_at
@@ -106,8 +106,8 @@ id              bigint PK
 project_id      bigint FK -> projects(id)  ON DELETE CASCADE
 name            varchar(200)
 description     text NULL
-target_days     decimal(5,1)  CHECK (target_days % 0.5 = 0)
-days_spent      decimal(5,1)  default 0   CHECK (days_spent % 0.5 = 0)
+target_hours    decimal(6,2)  CHECK (target_hours % 0.5 = 0)
+hours_spent     decimal(6,2)  default 0   CHECK (hours_spent % 0.5 = 0)
 deadline        date NULL
 status          enum('R','A','G','B') default 'R'
 moscow          enum('M','S','C','W') NULL
@@ -147,8 +147,8 @@ plan_period_id  bigint FK -> plan_periods(id)  ON DELETE CASCADE
 deliverable_id  bigint FK -> deliverables(id)  ON DELETE CASCADE  NULL
 ad_hoc_name     varchar(200) NULL    -- only set when deliverable_id IS NULL
 ad_hoc_notes    text NULL
-allocated_days  decimal(5,1)  default 0  CHECK (allocated_days % 0.5 = 0)
-days_spent      decimal(5,1)  default 0  CHECK (days_spent % 0.5 = 0)
+allocated_hours decimal(6,2)  default 0  CHECK (allocated_hours % 0.5 = 0)
+hours_spent     decimal(6,2)  default 0  CHECK (hours_spent % 0.5 = 0)
 status          enum('R','A','G','B') default 'R'
 completed_at    timestamp NULL
 sort_order      smallint default 0
@@ -234,26 +234,28 @@ Sort and filter by Client, Status, MoSCoW.
 
 For each row, the user can:
 - ✓ Mark complete
-- Enter actual `days_spent` (0.5 increments)
+- Enter actual `hours_spent` (0.5 increments; 8h = 1 day)
 - Add a per-item note
 
-Plus: a "+ Add ad-hoc item" button at the bottom for unplanned work (server emergencies, etc.). Ad-hoc items have name, notes, and days_spent. They don't link to a deliverable.
+Plus: a "+ Add ad-hoc item" button at the bottom for unplanned work (server emergencies, etc.). Ad-hoc items have name, notes, and hours_spent. They don't link to a deliverable.
 
 On **Submit**, inside a single DB transaction (`WeeklyReviewService::process()`):
 
 1. For each row marked complete:
    - Set `plan_items.completed_at = now()`, `plan_items.status = 'G'`.
-   - If `deliverable_id` is set, add `days_spent` to `deliverables.days_spent`.
+   - If `deliverable_id` is set, add `hours_spent` to `deliverables.hours_spent`.
 
 2. For each row not marked complete:
-   - Update `plan_items.days_spent`.
-   - Recolour: `R` if past deadline, else `A` if any days were spent (still in flight), else leave as set.
+   - Update `plan_items.hours_spent`.
+   - Recolour: `R` if past deadline, else `A` if any hours were spent (still in flight), else leave as set.
 
-3. For each ad-hoc item: insert a `plan_items` row with `deliverable_id = NULL`, `ad_hoc_name`, `days_spent`, `completed_at = now()`, `status = 'G'`.
+3. For each ad-hoc item: insert a `plan_items` row with `deliverable_id = NULL`, `ad_hoc_name`, `hours_spent`, `completed_at = now()`, `status = 'G'`.
 
-4. Recompute monthly + quarterly `plan_items.days_spent` for the affected deliverables. This is *derived*, not stored on those plan_items as a hand-tracked counter — it's `SUM(weekly plan_items.days_spent WHERE deliverable_id = X AND week falls inside the monthly/quarterly period)`. Implemented via a single query in `PlanRollupService`.
+4. Recompute monthly + quarterly `plan_items.hours_spent` for the affected deliverables. This is *derived*, not stored on those plan_items as a hand-tracked counter — it's `SUM(weekly plan_items.hours_spent WHERE deliverable_id = X AND week falls inside the monthly/quarterly period)`. Implemented via a single query in `PlanRollupService`.
 
-5. Optionally (button: "Roll incomplete forward"): copy remaining (not-completed) plan_items from this week into next week's `plan_period`, preserving `allocated_days` and `notes`, resetting `days_spent` and `completed_at`.
+5. Optionally (button: "Roll incomplete forward"): copy remaining (not-completed) plan_items from this week into next week's `plan_period`, preserving `allocated_hours` and `notes`, resetting `hours_spent` and `completed_at`.
+
+> **Hours as source of truth:** all duration columns store hours. The UI renders both via `App\Support\TimeUnits::formatHoursWithDays($h)`, which prints like `12.5h (1.6d)`. 8h ≡ 1 day; weekly default capacity 40h, monthly 160h, quarterly = 3× monthly.
 
 ## PDF report
 

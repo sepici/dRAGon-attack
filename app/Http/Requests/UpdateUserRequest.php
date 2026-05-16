@@ -28,12 +28,12 @@ class UpdateUserRequest extends FormRequest
             // Password is optional on update — blank means "leave as-is"
             'password' => ['nullable', 'string', Password::defaults(), 'confirmed'],
             'role' => ['required', Rule::enum(UserRole::class)],
-            'weekly_capacity_days' => [
-                'required', 'numeric', 'min:0', 'max:7',
+            'weekly_capacity_hours' => [
+                'required', 'numeric', 'min:0', 'max:168',
                 'multiple_of:0.5',
             ],
-            'monthly_capacity_days' => [
-                'required', 'numeric', 'min:0', 'max:31',
+            'monthly_capacity_hours' => [
+                'required', 'numeric', 'min:0', 'max:744',
                 'multiple_of:0.5',
             ],
         ];

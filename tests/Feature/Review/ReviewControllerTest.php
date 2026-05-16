@@ -62,20 +62,20 @@ class ReviewControllerTest extends TestCase
         $project = Project::factory()->create(['owner_id' => $user->id]);
         $deliverable = Deliverable::factory()->create([
             'project_id' => $project->id,
-            'days_spent' => 0,
+            'hours_spent' => 0,
         ]);
         $period = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
         $item = PlanItem::factory()->create([
             'plan_period_id' => $period->id,
             'deliverable_id' => $deliverable->id,
-            'allocated_days' => 2.0,
+            'allocated_hours' => 16.0,
         ]);
 
         $response = $this->actingAs($user)->post('/review', [
             'items' => [
                 $item->id => [
                     'completed' => '1',
-                    'days_spent' => 1.5,
+                    'hours_spent' => 12.0,
                     'notes' => 'finished',
                 ],
             ],
@@ -86,7 +86,7 @@ class ReviewControllerTest extends TestCase
         $item->refresh();
         $this->assertSame(Status::Green, $item->status);
         $this->assertNotNull($item->completed_at);
-        $this->assertEqualsWithDelta(1.5, (float) $deliverable->fresh()->days_spent, 0.01);
+        $this->assertEqualsWithDelta(12.0, (float) $deliverable->fresh()->hours_spent, 0.01);
     }
 
     public function test_submitting_ad_hoc_row_creates_completed_plan_item(): void
@@ -96,7 +96,7 @@ class ReviewControllerTest extends TestCase
 
         $this->actingAs($user)->post('/review', [
             'ad_hoc' => [
-                ['name' => 'Server outage', 'days_spent' => 0.5, 'notes' => 'Cloudways nginx restart'],
+                ['name' => 'Server outage', 'hours_spent' => 4.0, 'notes' => 'Cloudways nginx restart'],
             ],
         ]);
 
@@ -106,7 +106,7 @@ class ReviewControllerTest extends TestCase
         $this->assertSame(Status::Green, $adHoc->status);
     }
 
-    public function test_half_day_increment_validation_on_days_spent(): void
+    public function test_half_hour_increment_validation_on_hours_spent(): void
     {
         $user = User::factory()->create();
         $period = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
@@ -120,11 +120,11 @@ class ReviewControllerTest extends TestCase
             ->from('/review')
             ->post('/review', [
                 'items' => [
-                    $item->id => ['days_spent' => 1.3, 'completed' => '1'],
+                    $item->id => ['hours_spent' => 1.3, 'completed' => '1'],
                 ],
             ]);
 
-        $response->assertSessionHasErrors('items.' . $item->id . '.days_spent');
+        $response->assertSessionHasErrors('items.' . $item->id . '.hours_spent');
     }
 
     public function test_roll_forward_button_copies_incomplete_into_next_week(): void
@@ -136,7 +136,7 @@ class ReviewControllerTest extends TestCase
         PlanItem::factory()->create([
             'plan_period_id' => $period->id,
             'deliverable_id' => $deliverable->id,
-            'allocated_days' => 1.0,
+            'allocated_hours' => 8.0,
         ]);
 
         $response = $this->actingAs($user)->post('/review/roll-forward');

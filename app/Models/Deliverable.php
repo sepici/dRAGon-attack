@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Moscow;
 use App\Enums\Status;
+use App\Support\TimeUnits;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,8 +19,8 @@ class Deliverable extends Model
         'project_id',
         'name',
         'description',
-        'target_days',
-        'days_spent',
+        'target_hours',
+        'hours_spent',
         'deadline',
         'status',
         'moscow',
@@ -27,8 +28,8 @@ class Deliverable extends Model
     ];
 
     protected $casts = [
-        'target_days' => 'decimal:1',
-        'days_spent' => 'decimal:1',
+        'target_hours' => 'decimal:2',
+        'hours_spent' => 'decimal:2',
         'deadline' => 'date',
         'status' => Status::class,
         'moscow' => Moscow::class,
@@ -67,9 +68,21 @@ class Deliverable extends Model
         return ! is_null($this->completed_at);
     }
 
-    /** Remaining days = target - spent, never negative. */
-    public function getRemainingDaysAttribute(): float
+    /** Remaining hours = target - spent, never negative. */
+    public function getRemainingHoursAttribute(): float
     {
-        return max(0.0, (float) $this->target_days - (float) $this->days_spent);
+        return max(0.0, (float) $this->target_hours - (float) $this->hours_spent);
+    }
+
+    /** Derived days view of target_hours. */
+    public function getTargetDaysAttribute(): float
+    {
+        return TimeUnits::daysFromHours($this->target_hours);
+    }
+
+    /** Derived days view of hours_spent. */
+    public function getDaysSpentAttribute(): float
+    {
+        return TimeUnits::daysFromHours($this->hours_spent);
     }
 }

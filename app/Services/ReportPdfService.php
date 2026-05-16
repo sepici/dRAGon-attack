@@ -67,7 +67,7 @@ class ReportPdfService
                 ->with($with)
                 ->get(),
             'weekCapacity' => $thisWeek->capacity(),
-            'weekTotalSpent' => (float) $thisWeek->items()->sum('days_spent'),
+            'weekTotalSpent' => (float) $thisWeek->items()->sum('hours_spent'),
 
             // Section 2 — next week's plan
             'nextWeek' => $nextWeek,

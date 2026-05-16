@@ -56,15 +56,16 @@
 <h2>1. Review of completed week</h2>
 
 @php
+    use App\Support\TimeUnits;
     $over = $weekTotalSpent - $weekCapacity;
 @endphp
 <p class="summary">
-    <strong>{{ number_format($weekTotalSpent, 1) }} days</strong> spent
-    against a capacity of <strong>{{ number_format($weekCapacity, 1) }} days</strong>
+    <strong>{{ TimeUnits::formatHoursWithDays($weekTotalSpent) }}</strong> spent
+    against a capacity of <strong>{{ TimeUnits::formatHoursWithDays($weekCapacity) }}</strong>
     @if ($over > 0)
-        — <span class="over">{{ number_format($over, 1) }} days over</span>.
+        — <span class="over">{{ TimeUnits::formatHoursWithDays($over) }} over</span>.
     @elseif ($over < 0)
-        — <span class="under">{{ number_format(abs($over), 1) }} days under</span>.
+        — <span class="under">{{ TimeUnits::formatHoursWithDays(abs($over)) }} under</span>.
     @else
         — exactly to capacity.
     @endif
@@ -88,8 +89,8 @@
                 <tr>
                     <td>{{ $item->deliverable->name }}<br><span style="color:#888; font-size:8pt;">{{ $item->deliverable->project->name }}</span></td>
                     <td>{{ $item->deliverable->project->client->legal_name }}</td>
-                    <td class="num">{{ number_format((float) $item->allocated_days, 1) }}</td>
-                    <td class="num">{{ number_format((float) $item->days_spent, 1) }}</td>
+                    <td class="num">{{ TimeUnits::formatHoursWithDays($item->allocated_hours) }}</td>
+                    <td class="num">{{ TimeUnits::formatHoursWithDays($item->hours_spent) }}</td>
                     <td>{{ $item->notes ?: '—' }}</td>
                 </tr>
             @endforeach
@@ -103,7 +104,7 @@
         <thead>
             <tr>
                 <th>Item</th>
-                <th class="num">Days</th>
+                <th class="num">Spent</th>
                 <th>Notes</th>
             </tr>
         </thead>
@@ -111,7 +112,7 @@
             @foreach ($adHocItems as $a)
                 <tr>
                     <td>{{ $a->ad_hoc_name }}</td>
-                    <td class="num">{{ number_format((float) $a->days_spent, 1) }}</td>
+                    <td class="num">{{ TimeUnits::formatHoursWithDays($a->hours_spent) }}</td>
                     <td>{{ $a->ad_hoc_notes ?: '—' }}</td>
                 </tr>
             @endforeach
@@ -136,8 +137,8 @@
                 <tr>
                     <td>{{ $item->deliverable->name }}</td>
                     <td>{{ $item->deliverable->project->client->legal_name }}</td>
-                    <td class="num">{{ number_format((float) $item->allocated_days, 1) }}</td>
-                    <td class="num">{{ number_format((float) $item->days_spent, 1) }}</td>
+                    <td class="num">{{ TimeUnits::formatHoursWithDays($item->allocated_hours) }}</td>
+                    <td class="num">{{ TimeUnits::formatHoursWithDays($item->hours_spent) }}</td>
                     <td class="center"><span class="chip chip-{{ $item->status->value }}">{{ $item->status->value }}</span></td>
                 </tr>
             @endforeach
@@ -156,7 +157,7 @@
         {{ $nextWeek->starts_on->format('d M Y') }}
         to {{ $nextWeek->ends_on->format('d M Y') }}
         &mdash; {{ $nextWeekItems->count() }} item(s),
-        {{ number_format($nextWeekItems->sum(fn ($i) => (float) $i->allocated_days), 1) }} days allocated.
+        {{ TimeUnits::formatHoursWithDays($nextWeekItems->sum(fn ($i) => (float) $i->allocated_hours)) }} allocated.
     </p>
     @include('reports.partials.plan-items-table', ['items' => $nextWeekItems])
 @endif
@@ -166,18 +167,18 @@
 {{-- ============================================================== --}}
 <h2>3. 1-Month plan</h2>
 @php
-    $monthTotal = (float) $monthItems->sum(fn ($i) => (float) $i->allocated_days);
+    $monthTotal = (float) $monthItems->sum(fn ($i) => (float) $i->allocated_hours);
     $monthOver = $monthTotal - $monthCapacity;
 @endphp
 <p class="summary">
     {{ $thisMonth->starts_on->format('d M Y') }}
     to {{ $thisMonth->ends_on->format('d M Y') }}
-    &mdash; <strong>{{ number_format($monthTotal, 1) }}</strong> days planned of
-    <strong>{{ number_format($monthCapacity, 1) }}</strong> capacity
+    &mdash; <strong>{{ TimeUnits::formatHoursWithDays($monthTotal) }}</strong> planned of
+    <strong>{{ TimeUnits::formatHoursWithDays($monthCapacity) }}</strong> capacity
     @if ($monthOver > 0)
-        (<span class="over">{{ number_format($monthOver, 1) }} over</span>).
+        (<span class="over">{{ TimeUnits::formatHoursWithDays($monthOver) }} over</span>).
     @elseif ($monthOver < 0)
-        (<span class="under">{{ number_format(abs($monthOver), 1) }} under</span>).
+        (<span class="under">{{ TimeUnits::formatHoursWithDays(abs($monthOver)) }} under</span>).
     @else
         (exactly to capacity).
     @endif
@@ -193,18 +194,18 @@
 {{-- ============================================================== --}}
 <h2>4. 3-Month plan</h2>
 @php
-    $quarterTotal = (float) $quarterItems->sum(fn ($i) => (float) $i->allocated_days);
+    $quarterTotal = (float) $quarterItems->sum(fn ($i) => (float) $i->allocated_hours);
     $quarterOver = $quarterTotal - $quarterCapacity;
 @endphp
 <p class="summary">
     {{ $thisQuarter->starts_on->format('d M Y') }}
     to {{ $thisQuarter->ends_on->format('d M Y') }}
-    &mdash; <strong>{{ number_format($quarterTotal, 1) }}</strong> days planned of
-    <strong>{{ number_format($quarterCapacity, 1) }}</strong> capacity
+    &mdash; <strong>{{ TimeUnits::formatHoursWithDays($quarterTotal) }}</strong> planned of
+    <strong>{{ TimeUnits::formatHoursWithDays($quarterCapacity) }}</strong> capacity
     @if ($quarterOver > 0)
-        (<span class="over">{{ number_format($quarterOver, 1) }} over</span>).
+        (<span class="over">{{ TimeUnits::formatHoursWithDays($quarterOver) }} over</span>).
     @elseif ($quarterOver < 0)
-        (<span class="under">{{ number_format(abs($quarterOver), 1) }} under</span>).
+        (<span class="under">{{ TimeUnits::formatHoursWithDays(abs($quarterOver)) }} under</span>).
     @else
         (exactly to capacity).
     @endif

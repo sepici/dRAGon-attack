@@ -38,18 +38,20 @@
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <div>
-        <x-input-label for="weekly_capacity_days" :value="__('Weekly capacity (days)')" />
-        <x-text-input id="weekly_capacity_days" name="weekly_capacity_days" type="number"
-            step="0.5" min="0" max="7" class="mt-1 block w-full"
-            :value="old('weekly_capacity_days', $user->weekly_capacity_days ?? 5.0)" required />
-        <x-input-error class="mt-2" :messages="$errors->get('weekly_capacity_days')" />
+        <x-input-label for="weekly_capacity_hours" :value="__('Weekly capacity (hours)')" />
+        <x-text-input id="weekly_capacity_hours" name="weekly_capacity_hours" type="number"
+            step="0.5" min="0" max="168" class="mt-1 block w-full"
+            :value="old('weekly_capacity_hours', $user->weekly_capacity_hours ?? 40.0)" required />
+        <x-input-error class="mt-2" :messages="$errors->get('weekly_capacity_hours')" />
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Default 40h (5 days &times; 8h).</p>
     </div>
     <div>
-        <x-input-label for="monthly_capacity_days" :value="__('Monthly capacity (days)')" />
-        <x-text-input id="monthly_capacity_days" name="monthly_capacity_days" type="number"
-            step="0.5" min="0" max="31" class="mt-1 block w-full"
-            :value="old('monthly_capacity_days', $user->monthly_capacity_days ?? 20.0)" required />
-        <x-input-error class="mt-2" :messages="$errors->get('monthly_capacity_days')" />
+        <x-input-label for="monthly_capacity_hours" :value="__('Monthly capacity (hours)')" />
+        <x-text-input id="monthly_capacity_hours" name="monthly_capacity_hours" type="number"
+            step="0.5" min="0" max="744" class="mt-1 block w-full"
+            :value="old('monthly_capacity_hours', $user->monthly_capacity_hours ?? 160.0)" required />
+        <x-input-error class="mt-2" :messages="$errors->get('monthly_capacity_hours')" />
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Default 160h (20 days &times; 8h).</p>
     </div>
 </div>
 

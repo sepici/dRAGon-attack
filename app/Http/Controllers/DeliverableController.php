@@ -44,8 +44,8 @@ class DeliverableController extends Controller
     {
         $deliverable = new Deliverable([
             'status' => 'R',
-            'target_days' => 0,
-            'days_spent' => 0,
+            'target_hours' => 0,
+            'hours_spent' => 0,
             'project_id' => request()->integer('project'), // prefill from ?project=
         ]);
         $projects = $this->projectsWithContacts();
