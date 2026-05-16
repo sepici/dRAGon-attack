@@ -54,6 +54,9 @@
                                 </x-slot>
                             </x-dropdown>
                         </div>
+                        <x-nav-link :href="route('journal.today')" :active="request()->routeIs('journal.*')">
+                            {{ __('Journal') }}
+                        </x-nav-link>
                         <x-nav-link :href="route('review.show')" :active="request()->routeIs('review.*')">
                             {{ __('Review') }}
                         </x-nav-link>
@@ -148,6 +151,9 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('plans.quarterly')" :active="request()->routeIs('plans.quarterly')">
                     {{ __('Quarterly') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('journal.today')" :active="request()->routeIs('journal.*')">
+                    {{ __('Journal') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('review.show')" :active="request()->routeIs('review.*')">
                     {{ __('Review') }}

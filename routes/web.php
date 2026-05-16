@@ -5,6 +5,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContactPersonController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliverableController;
+use App\Http\Controllers\JournalController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlanItemController;
 use App\Http\Controllers\ProfileController;
@@ -61,6 +62,16 @@ Route::middleware(['auth', 'role:user'])->group(function () {
     Route::post('plan-items', [PlanItemController::class, 'store'])->name('plan-items.store');
     Route::put('plan-items/{plan_item}', [PlanItemController::class, 'update'])->name('plan-items.update');
     Route::delete('plan-items/{plan_item}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
+
+    // Daily journal — log hours per (date, deliverable). Feeds the
+    // derived hours_spent aggregates and the monthly timesheet PDF.
+    Route::get('journal', [JournalController::class, 'today'])->name('journal.today');
+    Route::get('journal/{date}', [JournalController::class, 'show'])
+        ->where('date', '\d{4}-\d{2}-\d{2}')
+        ->name('journal.show');
+    Route::post('journal/{date}', [JournalController::class, 'store'])
+        ->where('date', '\d{4}-\d{2}-\d{2}')
+        ->name('journal.store');
 
     // End-of-week review
     Route::get('review', [ReviewController::class, 'show'])->name('review.show');
