@@ -12,6 +12,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\TimesheetController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -82,6 +83,11 @@ Route::middleware(['auth', 'role:user'])->group(function () {
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('reports/generate', [ReportController::class, 'generate'])->name('reports.generate');
     Route::get('reports/{report}/download', [ReportController::class, 'download'])->name('reports.download');
+
+    // Monthly timesheet PDFs (Onur-style month grid)
+    Route::get('timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');
+    Route::post('timesheets/generate', [TimesheetController::class, 'generate'])->name('timesheets.generate');
+    Route::get('timesheets/{timesheet}/download', [TimesheetController::class, 'download'])->name('timesheets.download');
 });
 
 // ---------------------------------------------------------------------------

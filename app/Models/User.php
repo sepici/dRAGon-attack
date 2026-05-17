@@ -94,6 +94,11 @@ class User extends Authenticatable
         return $this->hasMany(Report::class, 'owner_id');
     }
 
+    public function timesheets(): HasMany
+    {
+        return $this->hasMany(Timesheet::class, 'owner_id');
+    }
+
     /** All day-by-day work logs this user has entered (cross-deliverable). */
     public function timeLogs(): HasMany
     {

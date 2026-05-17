@@ -63,6 +63,9 @@
                         <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                             {{ __('Reports') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('timesheets.index')" :active="request()->routeIs('timesheets.*')">
+                            {{ __('Timesheets') }}
+                        </x-nav-link>
                     @elseif (Auth::user()->isViewer())
                         <x-nav-link :href="route('viewer.dashboard')" :active="request()->routeIs('viewer.dashboard')">
                             {{ __('Dashboard') }}
@@ -160,6 +163,9 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                     {{ __('Reports') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('timesheets.index')" :active="request()->routeIs('timesheets.*')">
+                    {{ __('Timesheets') }}
                 </x-responsive-nav-link>
             @elseif (Auth::user()->isViewer())
                 <x-responsive-nav-link :href="route('viewer.dashboard')" :active="request()->routeIs('viewer.dashboard')">
