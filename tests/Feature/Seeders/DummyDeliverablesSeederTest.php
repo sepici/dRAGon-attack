@@ -19,17 +19,44 @@ class DummyDeliverablesSeederTest extends TestCase
 
     private function ownerUser(): User
     {
-        return User::factory()->create(['email' => 'sepici@gmail.com']);
+        return User::factory()->create(['email' => 'sandbox-owner@example.com']);
     }
 
-    public function test_seeder_bails_when_owner_user_does_not_exist(): void
+    public function test_seeder_bails_when_no_user_exists(): void
     {
-        // No user with sepici@gmail.com exists.
+        // No user rows in the DB at all.
         $this->seed(DummyDeliverablesSeeder::class);
 
         $this->assertSame(0, Client::count());
         $this->assertSame(0, Project::count());
         $this->assertSame(0, Deliverable::count());
+    }
+
+    public function test_seeder_picks_env_owner_when_set(): void
+    {
+        $a = User::factory()->create(['email' => 'a@example.com']);
+        $b = User::factory()->create(['email' => 'b@example.com']);
+
+        putenv('SEED_OWNER_EMAIL=b@example.com');
+        try {
+            $this->seed(DummyDeliverablesSeeder::class);
+        } finally {
+            putenv('SEED_OWNER_EMAIL');
+        }
+
+        $project = Project::firstOrFail();
+        $this->assertSame($b->id, $project->owner_id);
+    }
+
+    public function test_seeder_falls_back_to_first_user_when_env_unset(): void
+    {
+        $first = User::factory()->create(['email' => 'first@example.com']);
+        User::factory()->create(['email' => 'second@example.com']);
+
+        $this->seed(DummyDeliverablesSeeder::class);
+
+        $project = Project::firstOrFail();
+        $this->assertSame($first->id, $project->owner_id);
     }
 
     public function test_seeder_creates_sandbox_client_project_and_deliverables(): void

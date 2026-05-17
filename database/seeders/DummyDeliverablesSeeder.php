@@ -15,8 +15,12 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Imports the 42 deliverables from RAG_Tracker.xlsx into a dummy
- * "Sandbox / Imported deliverables" project owned by the user whose email
- * matches OWNER_EMAIL.
+ * "Sandbox / Imported deliverables" project.
+ *
+ * Owner-resolution order:
+ *   1. Env SEED_OWNER_EMAIL (e.g. SEED_OWNER_EMAIL=foo@bar.com php artisan db:seed ...)
+ *   2. The first User::isUser() row in the DB
+ *   3. Bail with an error
  *
  * Idempotent: re-running skips deliverables whose name already exists under
  * the imported project. Time logs are only seeded the first time a
@@ -29,10 +33,10 @@ use Illuminate\Support\Facades\DB;
  *
  * Usage:
  *   php artisan db:seed --class=DummyDeliverablesSeeder
+ *   SEED_OWNER_EMAIL=burak@example.com php artisan db:seed --class=DummyDeliverablesSeeder
  */
 class DummyDeliverablesSeeder extends Seeder
 {
-    private const OWNER_EMAIL = 'sepici@gmail.com';
     private const CLIENT_NAME = 'Sandbox';
     private const PROJECT_NAME = 'Imported deliverables';
     private const LOG_DATE = '2026-05-11'; // matches the spreadsheet's "Last Updated"
@@ -90,15 +94,19 @@ class DummyDeliverablesSeeder extends Seeder
 
     public function run(): void
     {
-        $owner = User::where('email', self::OWNER_EMAIL)->first();
+        $owner = $this->resolveOwner();
         if (! $owner) {
-            $this->command?->error(sprintf(
-                'User %s not found. Create that user first, or edit OWNER_EMAIL in %s.',
-                self::OWNER_EMAIL,
-                static::class,
-            ));
+            $this->command?->error(
+                'No owner found. Set SEED_OWNER_EMAIL=<email> in the env, or '
+                . 'create at least one User role=user account first.',
+            );
             return;
         }
+        $this->command?->info(sprintf(
+            'Seeding under owner %d / %s.',
+            $owner->id,
+            $owner->email,
+        ));
 
         DB::transaction(function () use ($owner) {
             $client = Client::firstOrCreate(
@@ -159,6 +167,28 @@ class DummyDeliverablesSeeder extends Seeder
                 $logged,
             ));
         });
+    }
+
+    /**
+     * Pick the owner: env-supplied email first, then the first User-role
+     * account in the DB. Returns null when neither resolves to a user.
+     */
+    private function resolveOwner(): ?User
+    {
+        $envEmail = env('SEED_OWNER_EMAIL');
+        if (is_string($envEmail) && $envEmail !== '') {
+            $user = User::where('email', $envEmail)->first();
+            if ($user) {
+                return $user;
+            }
+            $this->command?->warn(sprintf(
+                'SEED_OWNER_EMAIL=%s but no matching user — falling back to the first user-role account.',
+                $envEmail,
+            ));
+        }
+        return User::where('role', \App\Enums\UserRole::User)
+            ->orderBy('id')
+            ->first();
     }
 
     private function mapStatus(?string $rag): Status
