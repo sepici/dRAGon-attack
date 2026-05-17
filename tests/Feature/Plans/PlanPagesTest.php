@@ -3,8 +3,13 @@
 namespace Tests\Feature\Plans;
 
 use App\Enums\PlanKind;
+use App\Models\Deliverable;
+use App\Models\PlanItem;
 use App\Models\PlanPeriod;
+use App\Models\Project;
+use App\Models\TimeLog;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -90,5 +95,56 @@ class PlanPagesTest extends TestCase
         $response = $this->get('/plans/weekly');
 
         $response->assertRedirect(route('login'));
+    }
+
+    public function test_weekly_plan_shows_period_scoped_hours_spent(): void
+    {
+        $user = User::factory()->create(['weekly_capacity_hours' => 40.0]);
+        $project = Project::factory()->create(['owner_id' => $user->id]);
+        $deliverable = Deliverable::factory()->create([
+            'project_id' => $project->id,
+            'name' => 'Magnolia OAuth flow',
+        ]);
+        $period = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
+        PlanItem::factory()->create([
+            'plan_period_id' => $period->id,
+            'deliverable_id' => $deliverable->id,
+            'allocated_hours' => 16.0,
+        ]);
+
+        // Two logs inside the period — should be counted.
+        TimeLog::factory()->create([
+            'owner_id' => $user->id, 'deliverable_id' => $deliverable->id,
+            'log_date' => $period->starts_on, 'hours' => 2.0,
+        ]);
+        TimeLog::factory()->create([
+            'owner_id' => $user->id, 'deliverable_id' => $deliverable->id,
+            'log_date' => $period->ends_on, 'hours' => 3.5,
+        ]);
+        // A log outside the period — should NOT show on this week's spent.
+        TimeLog::factory()->create([
+            'owner_id' => $user->id, 'deliverable_id' => $deliverable->id,
+            'log_date' => CarbonImmutable::parse($period->starts_on)->subDay(),
+            'hours' => 99.0,
+        ]);
+
+        $response = $this->actingAs($user)->get('/plans/weekly');
+
+        $response->assertOk();
+        // Period-scoped spent = 5.5h (0.7d), formatted hours-leading.
+        $response->assertSee('5.5h (0.7d)');
+        // Allocated reads days-leading after M8e.
+        $response->assertSee('2d (16h)');
+    }
+
+    public function test_capacity_widget_shows_days_leading_format(): void
+    {
+        $user = User::factory()->create(['weekly_capacity_hours' => 40.0]);
+
+        $response = $this->actingAs($user)->get('/plans/weekly');
+
+        $response->assertOk();
+        // 40h capacity = 5d (40h) in days-leading display.
+        $response->assertSee('5d (40h)');
     }
 }
