@@ -16,43 +16,45 @@
 <meta charset="utf-8">
 <title>Timesheet — {{ $monthStart->format('F Y') }}</title>
 <style>
-    @page { margin: 24px 24px; }
-    body { font-family: DejaVu Sans, sans-serif; font-size: 9pt; color: #1a1a1a; }
+    /* Sizing trimmed to ~90% of the original to leave breathing room
+       horizontally — 30+ day columns × landscape A4 was a tight fit. */
+    @page { margin: 18px 18px; }
+    body { font-family: DejaVu Sans, sans-serif; font-size: 8pt; color: #1a1a1a; }
 
     /* Top-left identity block */
-    table.id { border-collapse: collapse; margin-bottom: 14px; }
-    table.id td { border: 1px solid #999; padding: 3px 8px; font-size: 9pt; }
-    table.id td.label { background: #f1f1f1; font-weight: bold; width: 60px; }
-    table.id td.value { min-width: 200px; }
+    table.id { border-collapse: collapse; margin-bottom: 12px; }
+    table.id td { border: 1px solid #999; padding: 2px 6px; font-size: 8pt; }
+    table.id td.label { background: #f1f1f1; font-weight: bold; width: 54px; }
+    table.id td.value { min-width: 180px; }
 
     /* The grid */
     table.grid { width: 100%; border-collapse: collapse; }
     table.grid th, table.grid td {
         border: 1px solid #b8b8b8;
-        padding: 3px 4px;
+        padding: 2px 3px;
         vertical-align: middle;
     }
     table.grid th {
         background: #efefef;
-        font-size: 8pt;
+        font-size: 7pt;
         font-weight: bold;
         text-align: center;
     }
-    table.grid th.sr      { width: 22px; }
-    table.grid th.task    { width: 200px; text-align: left; padding-left: 6px; }
-    table.grid th.day     { width: 18px; font-size: 7pt; }
-    table.grid th.total   { width: 30px; background: #e4e4e4; }
+    table.grid th.sr      { width: 20px; }
+    table.grid th.task    { width: 150px; text-align: left; padding-left: 5px; }
+    table.grid th.day     { width: 16px; font-size: 6.5pt; }
+    table.grid th.total   { width: 26px; background: #e4e4e4; }
 
-    table.grid td.sr      { text-align: center; color: #555; font-size: 8pt; }
-    table.grid td.task    { text-align: left; padding-left: 6px; font-size: 8pt; }
-    table.grid td.cell    { text-align: center; font-size: 7.5pt; }
+    table.grid td.sr      { text-align: center; color: #555; font-size: 7pt; }
+    table.grid td.task    { text-align: left; padding-left: 5px; font-size: 7pt; }
+    table.grid td.cell    { text-align: center; font-size: 6.5pt; }
     table.grid td.empty   { background: #fafafa; }
     table.grid td.total   {
         text-align: right;
         background: #f4f4f4;
         font-weight: bold;
-        font-size: 8pt;
-        padding-right: 6px;
+        font-size: 7pt;
+        padding-right: 5px;
     }
 
     /* Day-totals strip below the grid */
@@ -60,27 +62,27 @@
         border-top: 2px solid #999;
         background: #efefef;
         font-weight: bold;
-        font-size: 7.5pt;
+        font-size: 6.5pt;
         text-align: center;
     }
     table.grid tr.day-totals td.label {
         text-align: right;
-        padding-right: 6px;
+        padding-right: 5px;
         background: #fff;
         border: none;
         font-weight: normal;
-        font-size: 8pt;
+        font-size: 7pt;
         color: #555;
     }
 
     /* Summary */
-    p.summary { margin-top: 12px; font-size: 9pt; }
+    p.summary { margin-top: 10px; font-size: 8pt; }
     p.summary strong { color: #1E2761; }
 
     /* Footnote */
-    p.note { margin-top: 18px; font-size: 7.5pt; color: #666; font-style: italic; line-height: 1.5; }
+    p.note { margin-top: 16px; font-size: 7pt; color: #666; font-style: italic; line-height: 1.5; }
 
-    .empty-state { color: #888; font-style: italic; font-size: 9pt; padding: 14px 0; }
+    .empty-state { color: #888; font-style: italic; font-size: 8pt; padding: 12px 0; }
 </style>
 </head>
 <body>
