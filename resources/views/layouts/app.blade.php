@@ -9,10 +9,10 @@
              falls back to just the app name. --}}
         <title>{{ isset($title) ? $title . ' · ' : '' }}{{ config('app.name', 'dRAGonattack Tracker') }}</title>
 
-        {{-- Favicons: SVG for modern browsers, .ico fallback for older ones. --}}
-        <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+        {{-- Favicons: PNG for modern browsers, .ico fallback for older ones. --}}
+        <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
         <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
-        <link rel="apple-touch-icon" href="{{ asset('favicon.svg') }}">
+        <link rel="apple-touch-icon" href="{{ asset('favicon.png') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
