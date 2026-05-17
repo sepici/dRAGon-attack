@@ -1,8 +1,11 @@
 <nav x-data="{ open: false }" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-    {{-- Nav items depend on the user's role. Logo and Dashboard/Users link
-         point to the role's landing route. M1c shows the minimum set;
-         M2+ adds Clients, Projects, Deliverables, Plans, Review, Reports for
-         users, and the read-only equivalents for viewers. --}}
+    {{-- Nav items depend on the user's role.
+         User flow (left → right):
+           Dashboard · Tracker ▾ · Plans ▾ · Journal · Review · Exports ▾
+         where:
+           Tracker  → Clients / Projects / Deliverables
+           Plans    → Weekly / Monthly / Quarterly
+           Exports  → Reports / Timesheets --}}
 
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -25,15 +28,26 @@
                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                             {{ __('Dashboard') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('clients.index')" :active="request()->routeIs('clients.*')">
-                            {{ __('Clients') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('projects.index')" :active="request()->routeIs('projects.*')">
-                            {{ __('Projects') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('deliverables.index')" :active="request()->routeIs('deliverables.*')">
-                            {{ __('Deliverables') }}
-                        </x-nav-link>
+
+                        {{-- Tracker submenu (Clients / Projects / Deliverables) --}}
+                        <div class="hidden sm:flex sm:items-center -my-px">
+                            <x-dropdown align="left" width="48">
+                                <x-slot name="trigger">
+                                    <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out
+                                        {{ request()->routeIs('clients.*', 'projects.*', 'deliverables.*') ? 'border-indigo-400 dark:border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700' }}">
+                                        {{ __('Tracker') }}
+                                        <svg class="ms-1 fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </x-slot>
+                                <x-slot name="content">
+                                    <x-dropdown-link :href="route('clients.index')">{{ __('Clients') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('projects.index')">{{ __('Projects') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('deliverables.index')">{{ __('Deliverables') }}</x-dropdown-link>
+                                </x-slot>
+                            </x-dropdown>
+                        </div>
 
                         {{-- Plans submenu (Weekly / Monthly / Quarterly) --}}
                         <div class="hidden sm:flex sm:items-center -my-px">
@@ -60,12 +74,25 @@
                         <x-nav-link :href="route('review.show')" :active="request()->routeIs('review.*')">
                             {{ __('Review') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
-                            {{ __('Reports') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('timesheets.index')" :active="request()->routeIs('timesheets.*')">
-                            {{ __('Timesheets') }}
-                        </x-nav-link>
+
+                        {{-- Exports submenu (Reports / Timesheets) --}}
+                        <div class="hidden sm:flex sm:items-center -my-px">
+                            <x-dropdown align="left" width="48">
+                                <x-slot name="trigger">
+                                    <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out
+                                        {{ request()->routeIs('reports.*', 'timesheets.*') ? 'border-indigo-400 dark:border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700' }}">
+                                        {{ __('Exports') }}
+                                        <svg class="ms-1 fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </x-slot>
+                                <x-slot name="content">
+                                    <x-dropdown-link :href="route('reports.index')">{{ __('Reports') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('timesheets.index')">{{ __('Timesheets') }}</x-dropdown-link>
+                                </x-slot>
+                            </x-dropdown>
+                        </div>
                     @elseif (Auth::user()->isViewer())
                         <x-nav-link :href="route('viewer.dashboard')" :active="request()->routeIs('viewer.dashboard')">
                             {{ __('Dashboard') }}
@@ -136,6 +163,8 @@
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     {{ __('Dashboard') }}
                 </x-responsive-nav-link>
+
+                <div class="px-4 pt-2 text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500">Tracker</div>
                 <x-responsive-nav-link :href="route('clients.index')" :active="request()->routeIs('clients.*')">
                     {{ __('Clients') }}
                 </x-responsive-nav-link>
@@ -145,6 +174,7 @@
                 <x-responsive-nav-link :href="route('deliverables.index')" :active="request()->routeIs('deliverables.*')">
                     {{ __('Deliverables') }}
                 </x-responsive-nav-link>
+
                 <div class="px-4 pt-2 text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500">Plans</div>
                 <x-responsive-nav-link :href="route('plans.weekly')" :active="request()->routeIs('plans.weekly')">
                     {{ __('Weekly') }}
@@ -155,12 +185,15 @@
                 <x-responsive-nav-link :href="route('plans.quarterly')" :active="request()->routeIs('plans.quarterly')">
                     {{ __('Quarterly') }}
                 </x-responsive-nav-link>
+
                 <x-responsive-nav-link :href="route('journal.today')" :active="request()->routeIs('journal.*')">
                     {{ __('Journal') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('review.show')" :active="request()->routeIs('review.*')">
                     {{ __('Review') }}
                 </x-responsive-nav-link>
+
+                <div class="px-4 pt-2 text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500">Exports</div>
                 <x-responsive-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                     {{ __('Reports') }}
                 </x-responsive-nav-link>
