@@ -3,21 +3,21 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StoreTimeLogRequest;
+use App\Http\Requests\Api\V1\UpdateTimeLogRequest;
 use App\Http\Resources\TimeLogResource;
 use App\Models\TimeLog;
 use App\Support\DateInput;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 
 /**
- * GET /api/v1/time-logs
- *   ?date=YYYY-MM-DD | "today" | "yesterday" | natural-language
- *   ?from=...   inclusive lower bound (alternative to date)
- *   ?to=...     inclusive upper bound
- *   ?deliverable_id=N
- *   ?ad_hoc=true|false
+ * Read endpoints (M9b): index, show.
+ * Write endpoints (M9c): store, update, destroy.
  *
- * GET /api/v1/time-logs/{id}
+ * POST /api/v1/time-logs is the agent's bread-and-butter — accepts fuzzy
+ * deliverable_name, relative dates, and either deliverable_id OR ad_hoc_name.
  */
 class TimeLogController extends Controller
 {
@@ -29,7 +29,6 @@ class TimeLogController extends Controller
             ->orderByDesc('log_date')
             ->orderByDesc('id');
 
-        // Single-date filter takes precedence over from/to.
         if ($dateInput = $request->string('date')->toString()) {
             if ($date = DateInput::parse($dateInput)) {
                 $query->whereDate('log_date', $date->toDateString());
@@ -65,5 +64,54 @@ class TimeLogController extends Controller
         $timeLog->load(['deliverable.project.client']);
 
         return new TimeLogResource($timeLog);
+    }
+
+    public function store(StoreTimeLogRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $log = TimeLog::create([
+            'owner_id' => $request->user()->id,
+            'log_date' => $data['date'],
+            'deliverable_id' => $data['deliverable_id'] ?? null,
+            'ad_hoc_name' => $data['ad_hoc_name'] ?? null,
+            'hours' => $data['hours'],
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        $log->load(['deliverable.project.client']);
+
+        return (new TimeLogResource($log))
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    public function update(UpdateTimeLogRequest $request, TimeLog $timeLog): TimeLogResource
+    {
+        abort_unless($timeLog->owner_id === auth()->id(), 404);
+
+        $data = $request->validated();
+        if (array_key_exists('date', $data)) {
+            $data['log_date'] = $data['date'];
+            unset($data['date']);
+        }
+
+        // ad_hoc_name only writable on rows that are actually ad-hoc.
+        if (isset($data['ad_hoc_name']) && ! is_null($timeLog->deliverable_id)) {
+            unset($data['ad_hoc_name']);
+        }
+
+        $timeLog->update($data);
+        $timeLog->load(['deliverable.project.client']);
+
+        return new TimeLogResource($timeLog);
+    }
+
+    public function destroy(TimeLog $timeLog): JsonResponse
+    {
+        abort_unless($timeLog->owner_id === auth()->id(), 404);
+        $timeLog->delete();
+
+        return response()->json(null, 204);
     }
 }

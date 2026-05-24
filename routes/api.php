@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\DeliverableController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PlanController;
+use App\Http\Controllers\Api\V1\PlanItemController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\TimeLogController;
 use Illuminate\Support\Facades\Route;
@@ -16,9 +17,10 @@ use Illuminate\Support\Facades\Route;
 | Versioned under /api/v1. Authentication is Sanctum personal-access tokens
 | issued from /profile, restricted to user-role accounts.
 |
-| Ability gating uses Sanctum's built-in `abilities:<name>` middleware.
-| Wildcards (read:all, write:all) are expanded at token-creation time by
-| ApiTokenController::store(), so the middleware can match exactly.
+| Ability gating uses Sanctum's built-in `abilities:<name>` middleware
+| (alias registered in App\Http\Kernel). Wildcards (read:all, write:all)
+| are expanded at token-creation time by ApiTokenController so the
+| middleware can match exactly.
 |
 */
 
@@ -45,9 +47,35 @@ Route::prefix('v1')
             Route::get('/plans/quarterly', [PlanController::class, 'quarterly'])->name('plans.quarterly');
         });
 
+        // -------- Writes under tracker:write --------
+        Route::middleware('abilities:tracker:write')->group(function () {
+            Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
+            Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
+            Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+
+            Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
+            Route::put('/projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
+            Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
+
+            Route::post('/deliverables', [DeliverableController::class, 'store'])->name('deliverables.store');
+            Route::put('/deliverables/{deliverable}', [DeliverableController::class, 'update'])->name('deliverables.update');
+            Route::delete('/deliverables/{deliverable}', [DeliverableController::class, 'destroy'])->name('deliverables.destroy');
+
+            Route::post('/plan-items', [PlanItemController::class, 'store'])->name('plan-items.store');
+            Route::put('/plan-items/{plan_item}', [PlanItemController::class, 'update'])->name('plan-items.update');
+            Route::delete('/plan-items/{plan_item}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
+        });
+
         // -------- Reads under time-logs:read --------
         Route::middleware('abilities:time-logs:read')->group(function () {
             Route::get('/time-logs', [TimeLogController::class, 'index'])->name('time-logs.index');
             Route::get('/time-logs/{time_log}', [TimeLogController::class, 'show'])->name('time-logs.show');
+        });
+
+        // -------- Writes under time-logs:write --------
+        Route::middleware('abilities:time-logs:write')->group(function () {
+            Route::post('/time-logs', [TimeLogController::class, 'store'])->name('time-logs.store');
+            Route::put('/time-logs/{time_log}', [TimeLogController::class, 'update'])->name('time-logs.update');
+            Route::delete('/time-logs/{time_log}', [TimeLogController::class, 'destroy'])->name('time-logs.destroy');
         });
     });

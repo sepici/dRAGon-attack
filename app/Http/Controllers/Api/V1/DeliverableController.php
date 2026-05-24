@@ -5,21 +5,14 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\Moscow;
 use App\Enums\Status;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StoreDeliverableRequest;
+use App\Http\Requests\Api\V1\UpdateDeliverableRequest;
 use App\Http\Resources\DeliverableResource;
 use App\Models\Deliverable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 
-/**
- * GET /api/v1/deliverables
- *   ?project_id=N
- *   ?status=R|A|G|B
- *   ?moscow=M|S|C|W
- *   ?name_like=substring   — agent-friendly fuzzy lookup
- *   ?completed=true|false
- *
- * GET /api/v1/deliverables/{id}
- */
 class DeliverableController extends Controller
 {
     public function index(Request $request): ResourceCollection
@@ -70,5 +63,41 @@ class DeliverableController extends Controller
         );
 
         return new DeliverableResource($deliverable);
+    }
+
+    public function store(StoreDeliverableRequest $request): JsonResponse
+    {
+        $deliverable = Deliverable::create($request->validated());
+        $deliverable->load(['project.client']);
+        $deliverable->setAttribute('hours_spent', 0.0);
+
+        return (new DeliverableResource($deliverable))->response()->setStatusCode(201);
+    }
+
+    public function update(UpdateDeliverableRequest $request, Deliverable $deliverable): DeliverableResource
+    {
+        abort_unless(
+            $deliverable->project()->where('owner_id', auth()->id())->exists(),
+            404,
+        );
+        $deliverable->update($request->validated());
+        $deliverable->load(['project.client']);
+        $deliverable->setAttribute(
+            'hours_spent',
+            (float) $deliverable->timeLogs()->sum('hours'),
+        );
+
+        return new DeliverableResource($deliverable);
+    }
+
+    public function destroy(Deliverable $deliverable): JsonResponse
+    {
+        abort_unless(
+            $deliverable->project()->where('owner_id', auth()->id())->exists(),
+            404,
+        );
+        $deliverable->delete();
+
+        return response()->json(null, 204);
     }
 }
