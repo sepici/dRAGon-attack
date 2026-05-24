@@ -77,4 +77,15 @@ class MeTest extends TestCase
         $response->assertStatus(401);
         $this->assertStringContainsString('json', strtolower($response->headers->get('content-type', '')));
     }
+
+    public function test_unauthenticated_api_request_without_accept_header_still_returns_json(): void
+    {
+        // Plain curl without `Accept: application/json` should also get JSON,
+        // not an HTML redirect to /login. The exception handler is configured
+        // to coerce anything under /api/* to JSON.
+        $response = $this->get('/api/v1/me');
+
+        $response->assertStatus(401);
+        $this->assertStringContainsString('json', strtolower($response->headers->get('content-type', '')));
+    }
 }

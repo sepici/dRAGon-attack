@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Request;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -26,5 +27,16 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
+
+    /**
+     * Force JSON responses for anything under /api/*. Without this override,
+     * curl / scripts that forget to send `Accept: application/json` get an
+     * HTML redirect to /login on auth failure instead of a proper 401 — which
+     * is hostile to agents and integration scripts.
+     */
+    protected function shouldReturnJson($request, Throwable $e): bool
+    {
+        return parent::shouldReturnJson($request, $e) || $request->is('api/*');
     }
 }
