@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\DeliverableController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\OpenApiController;
 use App\Http\Controllers\Api\V1\PlanController;
 use App\Http\Controllers\Api\V1\PlanItemController;
 use App\Http\Controllers\Api\V1\ProjectController;
@@ -23,6 +24,10 @@ use Illuminate\Support\Facades\Route;
 | middleware can match exactly.
 |
 */
+
+// Publicly accessible OpenAPI spec — describes endpoints, no user data.
+// MCP wrappers and ChatGPT Custom GPTs fetch this on configure.
+Route::get('v1/openapi.json', OpenApiController::class)->name('api.v1.openapi');
 
 Route::prefix('v1')
     ->middleware(['auth:sanctum', 'role:user'])
