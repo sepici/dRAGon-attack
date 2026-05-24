@@ -109,7 +109,7 @@ npm run build</code></pre>
   }
 }</code></pre>
                     </li>
-                    <li>Quit and relaunch Claude. The hammer icon in the chat input should list 17 <strong>dragonattack</strong> tools.</li>
+                    <li>Quit and relaunch Claude. The hammer icon in the chat input should list 21 <strong>dragonattack</strong> tools.</li>
                 </ol>
                 <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
                     Try: <em>"Log 1.5 hours on Clonallon Proposal today."</em> Claude calls <code>log_time</code> with the fuzzy name — the API resolves to the right deliverable.

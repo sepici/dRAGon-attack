@@ -75,6 +75,43 @@ export function buildTools(config: ApiConfig): Tool[] {
       },
       handler: async ({ id }) => a.getClient(id as number),
     },
+    {
+      definition: {
+        name: "create_client",
+        description:
+          "Create a new client (a company the user does work for). Only legal_name is required; email, phone, and notes are optional.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            legal_name: { type: "string", maxLength: 200 },
+            email: { type: "string", format: "email" },
+            phone: { type: "string", maxLength: 60 },
+            notes: { type: "string" },
+          },
+          required: ["legal_name"],
+        },
+      },
+      handler: async (args) => a.createClient(args),
+    },
+    {
+      definition: {
+        name: "update_client",
+        description:
+          "Patch-style update of a client. Only include the fields you want to change.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            legal_name: { type: "string", maxLength: 200 },
+            email: { type: "string", format: "email" },
+            phone: { type: "string", maxLength: 60 },
+            notes: { type: "string" },
+          },
+          required: ["id"],
+        },
+      },
+      handler: async ({ id, ...body }) => a.updateClient(id as number, body),
+    },
 
     // ---------- Projects ----------
     {
@@ -104,6 +141,43 @@ export function buildTools(config: ApiConfig): Tool[] {
         },
       },
       handler: async ({ id }) => a.getProject(id as number),
+    },
+    {
+      definition: {
+        name: "create_project",
+        description:
+          "Create a project under one of the user's clients. client_id must reference a client the user owns; name is required. Optionally set a description and a deadline (ISO YYYY-MM-DD).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            client_id: { type: "integer" },
+            name: { type: "string", maxLength: 200 },
+            description: { type: "string" },
+            deadline: { type: "string", format: "date" },
+          },
+          required: ["client_id", "name"],
+        },
+      },
+      handler: async (args) => a.createProject(args),
+    },
+    {
+      definition: {
+        name: "update_project",
+        description:
+          "Patch-style update of a project. Only include the fields you want to change. Can also re-parent the project to a different owned client by passing client_id.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            client_id: { type: "integer" },
+            name: { type: "string", maxLength: 200 },
+            description: { type: "string" },
+            deadline: { type: "string", format: "date" },
+          },
+          required: ["id"],
+        },
+      },
+      handler: async ({ id, ...body }) => a.updateProject(id as number, body),
     },
 
     // ---------- Deliverables ----------

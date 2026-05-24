@@ -6,15 +6,17 @@ into Claude Desktop (or any MCP client) as a set of named tools.
 
 ## What it gives Claude
 
-17 tools across:
+21 tools across:
 
 - **Account** — `whoami`
-- **Clients** — `list_clients`, `get_client`
-- **Projects** — `list_projects`, `get_project`
+- **Clients** — `list_clients`, `get_client`, `create_client`, `update_client`
+- **Projects** — `list_projects`, `get_project`, `create_project`, `update_project`
 - **Deliverables** — `list_deliverables` (with fuzzy `name_like`), `get_deliverable`, `create_deliverable`, `update_deliverable`
 - **Plans** — `get_weekly_plan`, `get_monthly_plan`, `get_quarterly_plan`
 - **Plan items** — `add_to_plan`, `update_plan_item`, `remove_from_plan`
 - **Time logs** — `list_time_logs`, **`log_time`** (the agent's bread and butter), `update_time_log`, `delete_time_log`
+
+Delete operations on clients, projects, and deliverables aren't exposed — those cascade in surprising ways (a deleted client wipes its projects and their deliverables) and have no agent-side confirm dialog, so they stay web-only on purpose.
 
 `log_time` accepts a fuzzy `deliverable_name` substring and a relative
 `date` (`"today"`, `"yesterday"`, natural language, or ISO), so a prompt
