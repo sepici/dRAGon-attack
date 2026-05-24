@@ -32,9 +32,12 @@ class ApiTokenController extends Controller
         // be able to bypass the UI by hand-crafting a POST.
         abort_unless($request->user()->isUser(), 403);
 
+        // Expand wildcard abilities (read:all → time-logs:read + tracker:read,
+        // etc.) so Sanctum's abilities middleware can do exact-match checks
+        // without each endpoint having to know about wildcards.
         $token = $request->user()->createToken(
             $data['name'],
-            $data['abilities'],
+            ApiAbility::expand($data['abilities']),
         );
 
         // Flash the plaintext token + the just-created id so the partial
