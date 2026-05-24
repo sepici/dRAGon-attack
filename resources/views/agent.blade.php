@@ -87,15 +87,32 @@
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
                 <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Claude Desktop (MCP)</h3>
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Native to Claude. MCP server-side wraps the same OpenAPI spec.
+                    Native to Claude. Plugs the API in as a set of named tools Claude can call directly.
                 </p>
-                <p class="mt-3 text-sm text-gray-700 dark:text-gray-300">
-                    A reference MCP server is on the roadmap (M10). Until then, the easiest path is to point any OpenAPI-to-MCP bridge
-                    (e.g. <a href="https://github.com/anthropics/mcp" class="text-indigo-600 dark:text-indigo-400 underline" target="_blank" rel="noopener">mcp</a>)
-                    at the OpenAPI URL above with your API token.
-                </p>
-                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 italic">
-                    We'll publish a one-command install for Claude Desktop once the MCP server lands.
+                <ol class="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300 list-decimal list-inside">
+                    <li>Clone the repo and build the reference server:
+<pre class="mt-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-2 overflow-x-auto font-mono text-xs"><code>cd path/to/rag-tracker/mcp
+npm install
+npm run build</code></pre>
+                    </li>
+                    <li>Open <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows) and add:
+<pre class="mt-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-2 overflow-x-auto font-mono text-xs"><code>{
+  "mcpServers": {
+    "dragonattack": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/rag-tracker/mcp/dist/index.js"],
+      "env": {
+        "DRAGONATTACK_API_URL": "{{ $apiBaseUrl }}",
+        "DRAGONATTACK_API_TOKEN": "&lt;your-token-here&gt;"
+      }
+    }
+  }
+}</code></pre>
+                    </li>
+                    <li>Quit and relaunch Claude. The hammer icon in the chat input should list 17 <strong>dragonattack</strong> tools.</li>
+                </ol>
+                <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    Try: <em>"Log 1.5 hours on Clonallon Proposal today."</em> Claude calls <code>log_time</code> with the fuzzy name — the API resolves to the right deliverable.
                 </p>
             </div>
 
