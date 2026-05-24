@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\AgentDocsController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContactPersonController;
 use App\Http\Controllers\DashboardController;
@@ -89,6 +90,10 @@ Route::middleware(['auth', 'role:user'])->group(function () {
     Route::get('timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');
     Route::post('timesheets/generate', [TimesheetController::class, 'generate'])->name('timesheets.generate');
     Route::get('timesheets/{timesheet}/download', [TimesheetController::class, 'download'])->name('timesheets.download');
+
+    // "Connect your AI" landing — copy-paste guides for ChatGPT / Claude /
+    // generic HTTP clients pointed at the /api/v1 surface.
+    Route::get('agent', [AgentDocsController::class, 'show'])->name('agent.show');
 });
 
 // ---------------------------------------------------------------------------
