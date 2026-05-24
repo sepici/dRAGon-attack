@@ -9,6 +9,7 @@ use App\Http\Controllers\JournalController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlanItemController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Profile\ApiTokenController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReviewController;
@@ -120,6 +121,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Personal-access token management (Sanctum). Issued only to user-role
+    // accounts; the controller enforces that.
+    Route::post('/profile/api-tokens', [ApiTokenController::class, 'store'])
+        ->name('profile.api-tokens.store');
+    Route::delete('/profile/api-tokens/{token}', [ApiTokenController::class, 'destroy'])
+        ->name('profile.api-tokens.destroy');
 });
 
 require __DIR__.'/auth.php';

@@ -25,14 +25,21 @@ class EnsureRole
     {
         $user = $request->user();
 
+        // API / JSON callers want machine-readable errors, not redirects.
+        $wantsJson = $request->expectsJson() || $request->is('api/*');
+
         if (! $user) {
-            return redirect()->route('login');
+            return $wantsJson
+                ? response()->json(['message' => 'Unauthenticated.'], 401)
+                : redirect()->route('login');
         }
 
         $allowed = array_map(static fn (string $r) => UserRole::from($r), $roles);
 
         if (! in_array($user->role, $allowed, true)) {
-            return redirect()->route($user->role->landingRoute());
+            return $wantsJson
+                ? response()->json(['message' => 'This token is not authorised for that role.'], 403)
+                : redirect()->route($user->role->landingRoute());
         }
 
         return $next($request);

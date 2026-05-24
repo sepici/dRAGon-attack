@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\V1\MeController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -8,12 +8,19 @@ use Illuminate\Support\Facades\Route;
 | API Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
+| Versioned under /api/v1 so we can iterate without breaking external
+| consumers (MCP wrapper, ChatGPT custom GPTs, scripts).
+|
+| Auth: Sanctum personal-access tokens. Issued only to user-role accounts
+| (admins and viewers don't get tokens). The EnsureRole middleware
+| returns JSON 403 for API requests, not the web's redirect.
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
+Route::prefix('v1')
+    ->middleware(['auth:sanctum', 'role:user'])
+    ->name('api.v1.')
+    ->group(function () {
+        // Who am I? First call any agent makes after wiring up a token.
+        Route::get('/me', MeController::class)->name('me');
+    });
