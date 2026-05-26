@@ -14,24 +14,32 @@ Claude sees friendly descriptions tuned for agent use.
 
 ## What it gives Claude
 
-21 tools across:
+28 tools across:
 
 - **Account** — `whoami`
 - **Clients** — `list_clients`, `get_client`, `create_client`, `update_client`
 - **Projects** — `list_projects`, `get_project`, `create_project`, `update_project`
-- **Deliverables** — `list_deliverables` (with fuzzy `name_like`), `get_deliverable`, `create_deliverable`, `update_deliverable`
+- **Milestones** — `list_milestones`, `get_milestone`, `create_milestone`, `update_milestone`, **`mark_scope_complete`** (one-shot wrapper for the "scope is locked, you can now flip the gate to Green" moment)
+- **Deliverables** — `list_deliverables` (with fuzzy `name_like`), `get_deliverable`, `create_deliverable`, `update_deliverable` — both write tools accept an optional `milestone_id` (must belong to the same project)
 - **Plans** — `get_weekly_plan`, `get_monthly_plan`, `get_quarterly_plan`
-- **Plan items** — `add_to_plan`, `update_plan_item`, `remove_from_plan`
+- **Plan items** — `add_to_plan` (allocate to EITHER a deliverable OR a milestone envelope — exactly one), `update_plan_item`, `remove_from_plan`
 - **Time logs** — `list_time_logs`, **`log_time`** (the agent's bread and butter), `update_time_log`, `delete_time_log`
 
-Delete operations on clients, projects, and deliverables aren't exposed —
-those cascade in surprising ways and have no agent-side confirm dialog,
-so they stay web-only on purpose.
+Delete operations on clients, projects, deliverables, and milestones aren't
+exposed — those cascade in surprising ways and have no agent-side confirm
+dialog, so they stay web-only on purpose.
 
 `log_time` accepts a fuzzy `deliverable_name` substring and a relative
 `date` (`"today"`, `"yesterday"`, natural language, or ISO), so a prompt
 like *"Log 2 hours on Clonallon Proposal today"* lands as one
 properly-resolved API call.
+
+Milestones are an *optional* grouping layer — small projects skip them.
+When used, `add_to_plan` with `milestone_id` lets you forward-plan in
+coarse chunks ("5 days on Phase 1 next month") before the deliverables
+under that phase are scoped; `mark_scope_complete` is the explicit
+"I've added every deliverable that belongs here" gate that lets the
+derived milestone status reach Green.
 
 ---
 
