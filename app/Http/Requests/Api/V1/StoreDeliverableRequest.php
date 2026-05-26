@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1;
 
 use App\Enums\Moscow;
 use App\Enums\Status;
+use App\Models\Milestone;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -31,6 +32,22 @@ class StoreDeliverableRequest extends FormRequest
             'deadline' => ['nullable', 'date_format:Y-m-d'],
             'status' => ['nullable', Rule::enum(Status::class)],
             'moscow' => ['nullable', Rule::enum(Moscow::class)],
+            // Optional milestone. Closure enforces the same project — a
+            // deliverable can't reference a milestone in a different project.
+            'milestone_id' => [
+                'nullable',
+                'integer',
+                'exists:milestones,id',
+                function ($attribute, $value, $fail) {
+                    if (is_null($value)) {
+                        return;
+                    }
+                    $milestone = Milestone::find($value);
+                    if ($milestone && (int) $milestone->project_id !== (int) $this->input('project_id')) {
+                        $fail('The selected milestone must belong to the same project as the deliverable.');
+                    }
+                },
+            ],
         ];
     }
 

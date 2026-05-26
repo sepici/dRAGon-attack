@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\DeliverableController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\MilestoneController;
 use App\Http\Controllers\Api\V1\OpenApiController;
 use App\Http\Controllers\Api\V1\PlanController;
 use App\Http\Controllers\Api\V1\PlanItemController;
@@ -47,6 +48,9 @@ Route::prefix('v1')
             Route::get('/deliverables', [DeliverableController::class, 'index'])->name('deliverables.index');
             Route::get('/deliverables/{deliverable}', [DeliverableController::class, 'show'])->name('deliverables.show');
 
+            Route::get('/milestones', [MilestoneController::class, 'index'])->name('milestones.index');
+            Route::get('/milestones/{milestone}', [MilestoneController::class, 'show'])->name('milestones.show');
+
             Route::get('/plans/weekly', [PlanController::class, 'weekly'])->name('plans.weekly');
             Route::get('/plans/monthly', [PlanController::class, 'monthly'])->name('plans.monthly');
             Route::get('/plans/quarterly', [PlanController::class, 'quarterly'])->name('plans.quarterly');
@@ -65,6 +69,10 @@ Route::prefix('v1')
             Route::post('/deliverables', [DeliverableController::class, 'store'])->name('deliverables.store');
             Route::put('/deliverables/{deliverable}', [DeliverableController::class, 'update'])->name('deliverables.update');
             Route::delete('/deliverables/{deliverable}', [DeliverableController::class, 'destroy'])->name('deliverables.destroy');
+
+            Route::post('/milestones', [MilestoneController::class, 'store'])->name('milestones.store');
+            Route::put('/milestones/{milestone}', [MilestoneController::class, 'update'])->name('milestones.update');
+            Route::delete('/milestones/{milestone}', [MilestoneController::class, 'destroy'])->name('milestones.destroy');
 
             Route::post('/plan-items', [PlanItemController::class, 'store'])->name('plan-items.store');
             Route::put('/plan-items/{plan_item}', [PlanItemController::class, 'update'])->name('plan-items.update');

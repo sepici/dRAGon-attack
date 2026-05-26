@@ -52,6 +52,8 @@ class OpenApiTest extends TestCase
             '/projects/{id}',
             '/deliverables',
             '/deliverables/{id}',
+            '/milestones',
+            '/milestones/{id}',
             '/plans/weekly',
             '/plans/monthly',
             '/plans/quarterly',

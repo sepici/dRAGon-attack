@@ -123,6 +123,21 @@ export function api(config: ApiConfig) {
     deleteDeliverable: (id: number) =>
       request(config, `/deliverables/${id}`, { method: "DELETE" }),
 
+    // Milestones (M12 — phase/chunk layer between project and deliverable)
+    listMilestones: (q?: {
+      project_id?: number;
+      moscow?: string;
+      name_like?: string;
+      scope_complete?: boolean;
+      page?: number;
+    }) => request(config, "/milestones", { query: q }),
+    getMilestone: (id: number) =>
+      unwrap(request(config, `/milestones/${id}`)),
+    createMilestone: (body: Record<string, unknown>) =>
+      unwrap(request(config, "/milestones", { method: "POST", body })),
+    updateMilestone: (id: number, body: Record<string, unknown>) =>
+      unwrap(request(config, `/milestones/${id}`, { method: "PUT", body })),
+
     // Plans
     weeklyPlan: () => unwrap(request(config, "/plans/weekly")),
     monthlyPlan: () => unwrap(request(config, "/plans/monthly")),

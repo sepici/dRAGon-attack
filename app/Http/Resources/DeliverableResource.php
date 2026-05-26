@@ -34,6 +34,8 @@ class DeliverableResource extends JsonResource
             'completed_at' => $this->completed_at?->toIso8601String(),
             'project_id' => $this->project_id,
             'project' => new ProjectResource($this->whenLoaded('project')),
+            'milestone_id' => $this->milestone_id,
+            'milestone' => new MilestoneResource($this->whenLoaded('milestone')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

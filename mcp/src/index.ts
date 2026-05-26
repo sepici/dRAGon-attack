@@ -13,6 +13,11 @@
  * See README for hosting + Claude Desktop config snippets.
  */
 
+// Make this file an ES module so top-level `await` (in the switch below)
+// is allowed. Without this, TS sees no imports/exports and treats it as
+// a plain script.
+export {};
+
 const mode = process.env.MCP_TRANSPORT ?? "stdio";
 
 switch (mode) {

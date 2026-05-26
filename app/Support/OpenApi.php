@@ -85,9 +85,10 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
             ['name' => 'Account', 'description' => 'Who am I?'],
             ['name' => 'Clients', 'description' => 'Companies you do work for.'],
             ['name' => 'Projects', 'description' => 'Engagements with a client.'],
-            ['name' => 'Deliverables', 'description' => 'Discrete outputs within a project.'],
-            ['name' => 'Plans', 'description' => 'Weekly / monthly / quarterly allocation of deliverables.'],
-            ['name' => 'Plan items', 'description' => 'Individual deliverable-on-plan entries.'],
+            ['name' => 'Milestones', 'description' => 'Optional grouping layer between a project and its deliverables. Use for phased work or forward-planning envelopes.'],
+            ['name' => 'Deliverables', 'description' => 'Discrete outputs within a project (optionally attached to a milestone).'],
+            ['name' => 'Plans', 'description' => 'Weekly / monthly / quarterly allocation of deliverables and milestones.'],
+            ['name' => 'Plan items', 'description' => 'Individual allocations on a plan — either to a deliverable or to a milestone (forward-planning envelope).'],
             ['name' => 'Time logs', 'description' => 'Day-by-day journal entries.'],
         ];
     }
@@ -273,6 +274,8 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
                     'completed_at' => ['type' => 'string', 'nullable' => true, 'format' => 'date-time'],
                     'project_id' => ['type' => 'integer'],
                     'project' => ['$ref' => '#/components/schemas/Project'],
+                    'milestone_id' => ['type' => 'integer', 'nullable' => true, 'description' => 'Optional grouping under a milestone in the same project.'],
+                    'milestone' => ['$ref' => '#/components/schemas/Milestone'],
                     'created_at' => ['type' => 'string', 'format' => 'date-time'],
                     'updated_at' => ['type' => 'string', 'format' => 'date-time'],
                 ],
@@ -288,33 +291,106 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
                     'deadline' => ['type' => 'string', 'nullable' => true, 'format' => 'date'],
                     'status' => ['type' => 'string', 'enum' => $statusValues, 'default' => 'R'],
                     'moscow' => ['type' => 'string', 'nullable' => true, 'enum' => $moscowValues],
+                    'milestone_id' => [
+                        'type' => 'integer', 'nullable' => true,
+                        'description' => 'Optional. The milestone must belong to the same project as the deliverable.',
+                    ],
+                ],
+            ],
+
+            'Milestone' => [
+                'type' => 'object',
+                'description' => 'A phase / chunk of work inside a project. Status is DERIVED from child deliverables + the scope_complete gate (see scope_ambiguous).',
+                'properties' => [
+                    'id' => ['type' => 'integer'],
+                    'project_id' => ['type' => 'integer'],
+                    'name' => ['type' => 'string'],
+                    'description' => ['type' => 'string', 'nullable' => true],
+                    'target_hours' => [
+                        'type' => 'number', 'nullable' => true,
+                        'description' => 'Manual coarse-grained target. May be null — when null, effective_target_hours sums the children.',
+                    ],
+                    'target_days' => ['type' => 'number', 'nullable' => true],
+                    'effective_target_hours' => [
+                        'type' => 'number',
+                        'description' => 'target_hours when set, otherwise SUM of child deliverables\' target_hours.',
+                    ],
+                    'effective_target_days' => ['type' => 'number'],
+                    'hours_spent' => [
+                        'type' => 'number',
+                        'description' => 'Sum of every time_log on any deliverable in this milestone (entire history).',
+                    ],
+                    'days_spent' => ['type' => 'number'],
+                    'deadline' => ['type' => 'string', 'nullable' => true, 'format' => 'date'],
+                    'moscow' => ['type' => 'string', 'nullable' => true, 'enum' => $moscowValues],
+                    'scope_complete' => [
+                        'type' => 'boolean',
+                        'description' => 'Set to true when every deliverable that needs to live under this milestone has been added. Gates derived status: while false, an all-Green milestone reads Amber.',
+                    ],
+                    'status' => [
+                        'type' => 'string', 'enum' => $statusValues,
+                        'description' => 'Derived RAGB rollup. Any child Red → Red; any Blocked → Blocked; any Amber → Amber; all Green + scope_complete=true → Green; all Green + scope_complete=false → Amber.',
+                    ],
+                    'scope_ambiguous' => [
+                        'type' => 'boolean',
+                        'description' => 'True when all children are Green but scope_complete is false. Hints "tick scope_complete or add the missing deliverables".',
+                    ],
+                    'sort_order' => ['type' => 'integer'],
+                    'project' => ['$ref' => '#/components/schemas/Project'],
+                    'created_at' => ['type' => 'string', 'format' => 'date-time'],
+                    'updated_at' => ['type' => 'string', 'format' => 'date-time'],
+                ],
+            ],
+            'MilestoneWrite' => [
+                'type' => 'object',
+                'required' => ['project_id', 'name'],
+                'properties' => [
+                    'project_id' => ['type' => 'integer'],
+                    'name' => ['type' => 'string', 'maxLength' => 200],
+                    'description' => ['type' => 'string', 'nullable' => true],
+                    'target_hours' => [
+                        'type' => 'number', 'nullable' => true,
+                        'minimum' => 0, 'maximum' => 2000, 'multipleOf' => 0.5,
+                        'description' => 'Optional manual target. Leave null to let the UI sum children.',
+                    ],
+                    'deadline' => ['type' => 'string', 'nullable' => true, 'format' => 'date'],
+                    'moscow' => ['type' => 'string', 'nullable' => true, 'enum' => $moscowValues],
+                    'scope_complete' => [
+                        'type' => 'boolean',
+                        'description' => 'Defaults to false on create. Set true once every relevant deliverable has been added.',
+                    ],
+                    'sort_order' => ['type' => 'integer'],
                 ],
             ],
 
             'PlanItem' => [
                 'type' => 'object',
+                'description' => 'A single allocation on a plan period. Exactly one of deliverable_id or milestone_id is non-null (envelope vs specific-draw model).',
                 'properties' => [
                     'id' => ['type' => 'integer'],
                     'plan_period_id' => ['type' => 'integer'],
-                    'deliverable_id' => ['type' => 'integer'],
+                    'deliverable_id' => ['type' => 'integer', 'nullable' => true],
+                    'milestone_id' => ['type' => 'integer', 'nullable' => true],
                     'allocated_hours' => ['type' => 'number'],
                     'allocated_days' => ['type' => 'number'],
                     'hours_spent' => [
                         'type' => 'number',
-                        'description' => 'Period-scoped: only counts time_logs whose log_date falls inside the parent plan_period.',
+                        'description' => 'Period-scoped: only counts time_logs whose log_date falls inside the parent plan_period. For milestone allocations, sums across every child deliverable of the milestone.',
                     ],
                     'days_spent' => ['type' => 'number'],
                     'notes' => ['type' => 'string', 'nullable' => true],
                     'status' => ['type' => 'string', 'enum' => $statusValues],
                     'completed_at' => ['type' => 'string', 'nullable' => true, 'format' => 'date-time'],
                     'deliverable' => ['$ref' => '#/components/schemas/Deliverable'],
+                    'milestone' => ['$ref' => '#/components/schemas/Milestone'],
                     'created_at' => ['type' => 'string', 'format' => 'date-time'],
                     'updated_at' => ['type' => 'string', 'format' => 'date-time'],
                 ],
             ],
             'PlanItemCreate' => [
                 'type' => 'object',
-                'required' => ['deliverable_id', 'allocated_hours'],
+                'required' => ['allocated_hours'],
+                'description' => 'Submit EITHER deliverable_id OR milestone_id — exactly one. The other should be omitted (or null).',
                 'properties' => [
                     'plan_period_id' => [
                         'type' => 'integer',
@@ -325,7 +401,14 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
                         'enum' => ['weekly', 'monthly', 'quarterly'],
                         'description' => 'Shortcut: resolve to the user\'s current period of that kind, creating it if needed. Use instead of plan_period_id.',
                     ],
-                    'deliverable_id' => ['type' => 'integer'],
+                    'deliverable_id' => [
+                        'type' => 'integer', 'nullable' => true,
+                        'description' => 'Allocate to a specific deliverable. Omit if allocating to a milestone envelope.',
+                    ],
+                    'milestone_id' => [
+                        'type' => 'integer', 'nullable' => true,
+                        'description' => 'Forward-planning envelope: allocate to a milestone before its deliverables are scoped. Omit if allocating to a deliverable.',
+                    ],
                     'allocated_hours' => ['type' => 'number', 'minimum' => 0, 'maximum' => 2000, 'multipleOf' => 0.5],
                     'notes' => ['type' => 'string', 'nullable' => true],
                 ],
@@ -426,6 +509,7 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
             ...self::pathsFor('clients', 'Clients', 'Client'),
             ...self::pathsFor('projects', 'Projects', 'Project'),
             ...self::pathsFor('deliverables', 'Deliverables', 'Deliverable', deliverableFilters: true),
+            ...self::pathsFor('milestones', 'Milestones', 'Milestone', milestoneFilters: true),
             '/plans/weekly' => self::pathPlan('weekly', 'Weekly'),
             '/plans/monthly' => self::pathPlan('monthly', 'Monthly'),
             '/plans/quarterly' => self::pathPlan('quarterly', 'Quarterly'),
@@ -460,7 +544,7 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
     /**
      * Builds index/show/store/update/destroy paths for a CRUD resource.
      */
-    private static function pathsFor(string $plural, string $tag, string $schema, bool $deliverableFilters = false): array
+    private static function pathsFor(string $plural, string $tag, string $schema, bool $deliverableFilters = false, bool $milestoneFilters = false): array
     {
         $writeSchema = $schema . 'Write';
         $indexParams = [
@@ -480,6 +564,20 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
                     'schema' => ['type' => 'string'],
                 ],
                 ['name' => 'completed', 'in' => 'query', 'schema' => ['type' => 'boolean']],
+            ]);
+        }
+        if ($milestoneFilters) {
+            $indexParams = array_merge($indexParams, [
+                ['name' => 'project_id', 'in' => 'query', 'schema' => ['type' => 'integer']],
+                ['name' => 'moscow', 'in' => 'query', 'schema' => ['type' => 'string', 'enum' => array_column(Moscow::cases(), 'value')]],
+                ['name' => 'name_like', 'in' => 'query',
+                    'description' => 'LIKE %x% over the milestone name.',
+                    'schema' => ['type' => 'string'],
+                ],
+                ['name' => 'scope_complete', 'in' => 'query',
+                    'description' => 'Filter by scope_complete flag (true/false).',
+                    'schema' => ['type' => 'boolean'],
+                ],
             ]);
         }
 

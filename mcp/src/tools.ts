@@ -224,7 +224,7 @@ export function buildTools(config: ApiConfig): Tool[] {
       definition: {
         name: "create_deliverable",
         description:
-          "Create a new deliverable under a project the user owns. Hours are the duration unit on input (1 day = 8h). Status defaults to 'R' if not set.",
+          "Create a new deliverable under a project the user owns. Hours are the duration unit on input (1 day = 8h). Status defaults to 'R' if not set. Optionally attach to a milestone in the same project via milestone_id.",
         inputSchema: {
           type: "object",
           properties: {
@@ -235,6 +235,11 @@ export function buildTools(config: ApiConfig): Tool[] {
             deadline: { type: "string", format: "date", description: "ISO YYYY-MM-DD." },
             status: { type: "string", enum: ["R", "A", "G", "B"] },
             moscow: { type: "string", enum: ["M", "S", "C", "W"] },
+            milestone_id: {
+              type: "integer",
+              description:
+                "Optional. Must belong to the same project. List the project's milestones via list_milestones first if unsure which to pick.",
+            },
           },
           required: ["project_id", "name", "target_hours"],
         },
@@ -245,7 +250,7 @@ export function buildTools(config: ApiConfig): Tool[] {
       definition: {
         name: "update_deliverable",
         description:
-          "Patch-style update of a deliverable. Only include the fields you want to change.",
+          "Patch-style update of a deliverable. Only include the fields you want to change. Pass milestone_id to (re)attach, or `null` to detach.",
         inputSchema: {
           type: "object",
           properties: {
@@ -257,11 +262,120 @@ export function buildTools(config: ApiConfig): Tool[] {
             status: { type: "string", enum: ["R", "A", "G", "B"] },
             moscow: { type: "string", enum: ["M", "S", "C", "W"] },
             completed_at: { type: "string", description: "ISO date-time or null." },
+            milestone_id: {
+              type: ["integer", "null"],
+              description:
+                "Reassign to a milestone in the same project, or pass null to detach from the current milestone.",
+            },
           },
           required: ["id"],
         },
       },
       handler: async ({ id, ...body }) => a.updateDeliverable(id as number, body),
+    },
+
+    // ---------- Milestones ----------
+    {
+      definition: {
+        name: "list_milestones",
+        description:
+          "List milestones the user owns. A milestone is an optional grouping layer between a project and its deliverables — useful for phased work and forward-planning envelopes. Status is DERIVED from child deliverables + the scope_complete gate. Filter by project_id, moscow, name_like, or scope_complete.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            project_id: { type: "integer" },
+            moscow: { type: "string", enum: ["M", "S", "C", "W"] },
+            name_like: { type: "string", description: "LIKE %x% over milestone names." },
+            scope_complete: { type: "boolean" },
+            page: { type: "integer", minimum: 1 },
+          },
+        },
+      },
+      handler: async (args) =>
+        a.listMilestones({
+          project_id: args.project_id as number | undefined,
+          moscow: args.moscow as string | undefined,
+          name_like: args.name_like as string | undefined,
+          scope_complete: args.scope_complete as boolean | undefined,
+          page: args.page as number | undefined,
+        }),
+    },
+    {
+      definition: {
+        name: "get_milestone",
+        description:
+          "Get a single milestone by id. Returns derived status, scope_ambiguous flag, effective_target_hours (manual or sum of children), and hours_spent rollup.",
+        inputSchema: {
+          type: "object",
+          properties: { id: { type: "integer" } },
+          required: ["id"],
+        },
+      },
+      handler: async ({ id }) => a.getMilestone(id as number),
+    },
+    {
+      definition: {
+        name: "create_milestone",
+        description:
+          "Create a new milestone (phase/chunk) under a project. target_hours is OPTIONAL — leave it out to let the milestone derive its target from the sum of its child deliverables. scope_complete defaults to false; set true only once every deliverable that needs to live under this milestone has been added.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            project_id: { type: "integer" },
+            name: { type: "string", maxLength: 200 },
+            description: { type: "string" },
+            target_hours: {
+              type: "number",
+              minimum: 0,
+              maximum: 2000,
+              multipleOf: 0.5,
+              description: "Optional coarse-grained target. Omit to derive from children.",
+            },
+            deadline: { type: "string", format: "date" },
+            moscow: { type: "string", enum: ["M", "S", "C", "W"] },
+            scope_complete: { type: "boolean", description: "Defaults to false." },
+          },
+          required: ["project_id", "name"],
+        },
+      },
+      handler: async (args) => a.createMilestone(args),
+    },
+    {
+      definition: {
+        name: "update_milestone",
+        description:
+          "Patch-style update of a milestone. Only include the fields you want to change. Pass target_hours: null to clear a manual target.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            name: { type: "string", maxLength: 200 },
+            description: { type: "string" },
+            target_hours: { type: ["number", "null"], minimum: 0, multipleOf: 0.5 },
+            deadline: { type: ["string", "null"], format: "date" },
+            moscow: { type: ["string", "null"], enum: ["M", "S", "C", "W"] },
+            scope_complete: { type: "boolean" },
+          },
+          required: ["id"],
+        },
+      },
+      handler: async ({ id, ...body }) => a.updateMilestone(id as number, body),
+    },
+    {
+      definition: {
+        name: "mark_scope_complete",
+        description:
+          "Tick a milestone's scope_complete flag to true. Use this AFTER confirming with the user that every deliverable that belongs under this milestone has been added — this gate is what lets the derived status reach Green. Equivalent to update_milestone({id, scope_complete: true}); preferred because the intent is explicit.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+          },
+          required: ["id"],
+        },
+      },
+      handler: async ({ id }) =>
+        a.updateMilestone(id as number, { scope_complete: true }),
     },
 
     // ---------- Plans ----------
@@ -296,7 +410,7 @@ export function buildTools(config: ApiConfig): Tool[] {
       definition: {
         name: "add_to_plan",
         description:
-          "Add a deliverable to a plan. The easy mode is to pass period_kind ('weekly'|'monthly'|'quarterly') instead of plan_period_id — that auto-resolves to (and creates if needed) the user's current period.",
+          "Add an allocation to a plan. EXACTLY ONE of deliverable_id or milestone_id must be set — never both, never neither. Use deliverable_id for specific 'X days on this item' work, milestone_id for forward-planning envelopes ('5 days on Phase 1 somewhere'). Pass period_kind ('weekly'|'monthly'|'quarterly') instead of plan_period_id for the easy path — that auto-resolves to (and creates if needed) the user's current period.",
         inputSchema: {
           type: "object",
           properties: {
@@ -306,11 +420,19 @@ export function buildTools(config: ApiConfig): Tool[] {
               description: "Shortcut. Alternative to plan_period_id.",
             },
             plan_period_id: { type: "integer", description: "Explicit period id." },
-            deliverable_id: { type: "integer" },
+            deliverable_id: {
+              type: "integer",
+              description: "Allocate to a specific deliverable. Omit if using milestone_id.",
+            },
+            milestone_id: {
+              type: "integer",
+              description:
+                "Allocate to a milestone envelope (forward-planning before deliverables are scoped). Omit if using deliverable_id.",
+            },
             allocated_hours: { type: "number", minimum: 0, multipleOf: 0.5 },
             notes: { type: "string" },
           },
-          required: ["deliverable_id", "allocated_hours"],
+          required: ["allocated_hours"],
         },
       },
       handler: async (args) => a.addToPlan(args),
