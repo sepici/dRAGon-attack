@@ -9,12 +9,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A deliverable's allocation inside a plan period (weekly/monthly/quarterly).
+ * An allocation inside a plan period. After M12a a plan_item targets
+ * EITHER a deliverable OR a milestone — exactly one of the two foreign
+ * keys is set. The deliverable form is the existing "1.5 days on this
+ * specific item" allocation; the milestone form is the
+ * "5 days on this chunk somewhere" forward-planning envelope.
  *
- * Ad-hoc plan_items were dropped in M8c — unplanned work now lives directly
- * in time_logs (with deliverable_id NULL + ad_hoc_name). plan_items.deliverable_id
- * stays nullable on the schema only to avoid a doctrine/dbal dependency for
- * the ->change() call; application code never inserts null rows.
+ * The exactly-one invariant is enforced at the application layer via a
+ * saving observer (no portable SQL CHECK constraint).
+ *
+ * Ad-hoc plan_items were dropped in M8c — unplanned work lives in time_logs.
  */
 class PlanItem extends Model
 {
@@ -23,6 +27,7 @@ class PlanItem extends Model
     protected $fillable = [
         'plan_period_id',
         'deliverable_id',
+        'milestone_id',
         'allocated_hours',
         'notes',
         'status',
@@ -36,6 +41,24 @@ class PlanItem extends Model
         'completed_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        // Enforce the exactly-one-of invariant on save. This catches factory
+        // misuse, tinker calls, future seeders — any path that bypasses the
+        // FormRequest. Throws instead of silently corrupting data.
+        static::saving(function (PlanItem $item) {
+            $hasDeliv = ! is_null($item->deliverable_id);
+            $hasMile = ! is_null($item->milestone_id);
+            if ($hasDeliv === $hasMile) {
+                throw new \LogicException(sprintf(
+                    'PlanItem must have exactly one of deliverable_id or milestone_id (got deliverable_id=%s, milestone_id=%s).',
+                    var_export($item->deliverable_id, true),
+                    var_export($item->milestone_id, true),
+                ));
+            }
+        });
+    }
+
     // ---------- Relationships ----------------------------------------------
 
     public function planPeriod(): BelongsTo
@@ -48,22 +71,43 @@ class PlanItem extends Model
         return $this->belongsTo(Deliverable::class);
     }
 
+    public function milestone(): BelongsTo
+    {
+        return $this->belongsTo(Milestone::class);
+    }
+
+    // ---------- Shape helpers ---------------------------------------------
+
+    public function isDeliverableAllocation(): bool
+    {
+        return ! is_null($this->deliverable_id);
+    }
+
+    public function isMilestoneAllocation(): bool
+    {
+        return ! is_null($this->milestone_id);
+    }
+
     // ---------- Derived hours_spent ---------------------------------------
 
     /**
-     * Hours logged against this plan item's deliverable WITHIN the parent
+     * Hours logged against this plan item's target WITHIN the parent
      * period's [starts_on, ends_on] date window. Derived from time_logs.
      *
-     * Hot-path callers should batch-hydrate via
-     * PlanPeriod::loadHoursSpent($items) so this lazy fallback never fires.
+     * For deliverable allocations: SUM of time_logs on that one deliverable.
+     * For milestone allocations: SUM of time_logs on any deliverable that
+     *   belongs to that milestone. Note: this double-counts with any
+     *   deliverable-level plan items under the same milestone in the same
+     *   period — see the M11 design rationale (the milestone is the
+     *   envelope, the deliverables are specific draws against it).
+     *
+     * Hot-path callers should batch-hydrate via PlanPeriod::loadHoursSpent
+     * so this lazy fallback never fires.
      */
     public function getHoursSpentAttribute(): float
     {
         if (array_key_exists('hours_spent', $this->attributes)) {
             return (float) $this->attributes['hours_spent'];
-        }
-        if (is_null($this->deliverable_id)) {
-            return 0.0;
         }
 
         $period = $this->planPeriod;
@@ -71,12 +115,25 @@ class PlanItem extends Model
             return 0.0;
         }
 
-        return (float) TimeLog::query()
+        $query = TimeLog::query()
             ->where('owner_id', $period->owner_id)
-            ->where('deliverable_id', $this->deliverable_id)
             ->whereDate('log_date', '>=', $period->starts_on)
-            ->whereDate('log_date', '<=', $period->ends_on)
-            ->sum('hours');
+            ->whereDate('log_date', '<=', $period->ends_on);
+
+        if ($this->deliverable_id) {
+            $query->where('deliverable_id', $this->deliverable_id);
+        } elseif ($this->milestone_id) {
+            $query->whereIn(
+                'deliverable_id',
+                Deliverable::query()
+                    ->where('milestone_id', $this->milestone_id)
+                    ->select('id'),
+            );
+        } else {
+            return 0.0;
+        }
+
+        return (float) $query->sum('hours');
     }
 
     /** Derived days view of allocated_hours. */

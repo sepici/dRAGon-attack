@@ -17,6 +17,7 @@ class Deliverable extends Model
 
     protected $fillable = [
         'project_id',
+        'milestone_id',
         'name',
         'description',
         'target_hours',
@@ -39,6 +40,15 @@ class Deliverable extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * Optional grouping within the project. A deliverable's milestone must
+     * belong to the same project (enforced at the FormRequest level).
+     */
+    public function milestone(): BelongsTo
+    {
+        return $this->belongsTo(Milestone::class);
     }
 
     /**

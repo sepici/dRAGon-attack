@@ -68,4 +68,13 @@ class Project extends Model
     {
         return $this->hasMany(Deliverable::class);
     }
+
+    /**
+     * Optional grouping layer between project and deliverables.
+     * Small projects skip this; big ones use it to phase work.
+     */
+    public function milestones(): HasMany
+    {
+        return $this->hasMany(Milestone::class)->orderBy('sort_order')->orderBy('id');
+    }
 }
