@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\PlanKind;
 use App\Enums\Status;
 use App\Models\Deliverable;
+use App\Models\Milestone;
 use App\Models\PlanPeriod;
 use Carbon\CarbonImmutable;
 use Illuminate\View\View;
@@ -67,6 +68,24 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        // Milestone status counts. Status is derived (depends on child
+        // deliverable statuses + scope_complete), so we tally in PHP rather
+        // than GROUP BY. Eager-loading the deliverable slice keeps the
+        // accessor's per-row query from firing.
+        $milestones = Milestone::query()
+            ->whereHas('project', fn ($q) => $q->where('owner_id', $user->id))
+            ->with(['deliverables:id,milestone_id,status'])
+            ->get();
+
+        $milestoneCounts = ['R' => 0, 'A' => 0, 'G' => 0, 'B' => 0];
+        $scopeNotConfirmedCount = 0;
+        foreach ($milestones as $m) {
+            $milestoneCounts[$m->status->value]++;
+            if ($m->isScopeAmbiguous()) {
+                $scopeNotConfirmedCount++;
+            }
+        }
+
         return view('dashboard', compact(
             'weekly',
             'monthly',
@@ -74,6 +93,8 @@ class DashboardController extends Controller
             'statusCounts',
             'upcoming',
             'recentlyCompleted',
+            'milestoneCounts',
+            'scopeNotConfirmedCount',
         ));
     }
 }

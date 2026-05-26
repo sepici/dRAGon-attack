@@ -29,9 +29,14 @@ class ReviewController extends Controller
     {
         $period = PlanPeriod::findOrCreateCurrentFor(auth()->user(), PlanKind::Weekly);
 
-        // Eager-load the deliverable chain for the table, then hydrate each
-        // plan_item's derived hours_spent in one query.
-        $period->load(['items.deliverable.project.client']);
+        // Eager-load both shapes (deliverable + milestone allocations) so the
+        // review page can group rows by milestone. The plan_item accessor
+        // for hours_spent is then hydrated via a single grouped SUM per shape.
+        $period->load(['items' => fn ($q) => $q->with([
+            'deliverable.project.client',
+            'deliverable.milestone',
+            'milestone.project.client',
+        ])]);
         $period->loadHoursSpent();
 
         $items = $period->items

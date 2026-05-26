@@ -2,6 +2,35 @@
     use App\Support\TimeUnits;
 
     $rangeText = $period->starts_on->format('d M Y') . ' → ' . $period->ends_on->format('d M Y');
+
+    // Group review rows by milestone (same shape as plans.show). A milestone
+    // envelope row appears as a "Milestone" entry the user can also tick
+    // done. Deliverable rows under a milestone are nested below its header.
+    $groups = [];
+    foreach ($items as $item) {
+        if ($item->milestone_id) {
+            $key = $item->milestone_id;
+            if (! isset($groups[$key])) {
+                $groups[$key] = ['milestone' => $item->milestone, 'header' => null, 'rows' => []];
+            }
+            $groups[$key]['header'] = $item;
+            if (! $groups[$key]['milestone']) {
+                $groups[$key]['milestone'] = $item->milestone;
+            }
+        } elseif ($item->deliverable_id) {
+            $m = $item->deliverable->milestone ?? null;
+            $key = $m ? $m->id : '_none';
+            if (! isset($groups[$key])) {
+                $groups[$key] = ['milestone' => $m, 'header' => null, 'rows' => []];
+            }
+            $groups[$key]['rows'][] = $item;
+        }
+    }
+    uksort($groups, function ($a, $b) use ($groups) {
+        if ($a === '_none') return 1;
+        if ($b === '_none') return -1;
+        return strcasecmp($groups[$a]['milestone']->name ?? '', $groups[$b]['milestone']->name ?? '');
+    });
 @endphp
 
 <x-app-layout>
@@ -80,44 +109,101 @@
                                     <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @forelse ($items as $item)
-                                    @php $d = $item->deliverable; @endphp
-                                    <tr class="{{ $item->completed_at ? 'opacity-60' : '' }}">
-                                        <td class="px-3 py-3 text-center">
-                                            <input type="checkbox"
-                                                name="items[{{ $item->id }}][completed]"
-                                                value="1"
-                                                @checked(old("items.{$item->id}.completed", $item->completed_at))
-                                                class="rounded border-gray-300 dark:border-gray-700 text-emerald-600 shadow-sm focus:ring-emerald-500">
-                                        </td>
-                                        <td class="px-3 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            <a href="{{ route('deliverables.show', $d) }}" class="hover:underline">{{ $d->name }}</a>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ $d->project->name }}</div>
-                                        </td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $d->project->client->legal_name }}</td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                                            {{ TimeUnits::formatDaysWithHours($item->allocated_hours) }}
-                                        </td>
-                                        <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                                            {{ TimeUnits::formatHoursWithDays($item->hours_spent) }}
-                                        </td>
-                                        <td class="px-3 py-3 text-sm">
-                                            <input type="text"
-                                                name="items[{{ $item->id }}][notes]"
-                                                value="{{ old("items.{$item->id}.notes", $item->notes) }}"
-                                                placeholder="Outcome / blocker / next step…"
-                                                class="w-full text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
-                                        </td>
-                                    </tr>
-                                @empty
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                @if ($items->isEmpty())
                                     <tr>
                                         <td colspan="6" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
                                             Nothing was planned for this week.
                                             <a href="{{ route('plans.weekly') }}" class="text-indigo-600 dark:text-indigo-400 underline">Plan the week</a> first.
                                         </td>
                                     </tr>
-                                @endforelse
+                                @endif
+
+                                @foreach ($groups as $key => $group)
+                                    @php
+                                        $m = $group['milestone'];
+                                        $header = $group['header'];
+                                        $rows = $group['rows'];
+                                        $isNoMilestoneGroup = ($key === '_none');
+                                    @endphp
+
+                                    {{-- Group header --}}
+                                    <tr class="bg-indigo-50/40 dark:bg-indigo-900/20">
+                                        <td colspan="6" class="px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                            @if ($isNoMilestoneGroup)
+                                                <span class="text-gray-500 dark:text-gray-400">(no milestone)</span>
+                                            @else
+                                                <a href="{{ route('milestones.show', $m) }}" class="hover:underline text-gray-900 dark:text-gray-100">{{ $m->name }}</a>
+                                                <span class="text-gray-500 dark:text-gray-400 font-normal">— {{ $m->project->name }} / {{ $m->project->client->legal_name }}</span>
+                                                @if ($m->isScopeAmbiguous())
+                                                    <span class="ml-2 text-xs text-amber-600 dark:text-amber-400" title="All current deliverables are Green, but scope isn't confirmed.">scope?</span>
+                                                @endif
+                                            @endif
+                                        </td>
+                                    </tr>
+
+                                    {{-- Milestone envelope row (if any) --}}
+                                    @if ($header)
+                                        <tr class="bg-white dark:bg-gray-800 {{ $header->completed_at ? 'opacity-60' : '' }}">
+                                            <td class="px-3 py-3 text-center">
+                                                <input type="checkbox"
+                                                    name="items[{{ $header->id }}][completed]"
+                                                    value="1"
+                                                    @checked(old("items.{$header->id}.completed", $header->completed_at))
+                                                    class="rounded border-gray-300 dark:border-gray-700 text-emerald-600 shadow-sm focus:ring-emerald-500">
+                                            </td>
+                                            <td class="px-3 py-3 text-sm font-medium text-gray-800 dark:text-gray-200 italic">
+                                                Milestone envelope
+                                                <div class="text-xs text-gray-500 dark:text-gray-400 not-italic">forward-planning allocation</div>
+                                            </td>
+                                            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $m->project->client->legal_name }}</td>
+                                            <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
+                                                {{ TimeUnits::formatDaysWithHours($header->allocated_hours) }}
+                                            </td>
+                                            <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
+                                                {{ TimeUnits::formatHoursWithDays($header->hours_spent) }}
+                                            </td>
+                                            <td class="px-3 py-3 text-sm">
+                                                <input type="text"
+                                                    name="items[{{ $header->id }}][notes]"
+                                                    value="{{ old("items.{$header->id}.notes", $header->notes) }}"
+                                                    placeholder="Phase outcome / next slice…"
+                                                    class="w-full text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
+                                            </td>
+                                        </tr>
+                                    @endif
+
+                                    @foreach ($rows as $item)
+                                        @php $d = $item->deliverable; @endphp
+                                        <tr class="{{ $item->completed_at ? 'opacity-60' : '' }}">
+                                            <td class="px-3 py-3 text-center">
+                                                <input type="checkbox"
+                                                    name="items[{{ $item->id }}][completed]"
+                                                    value="1"
+                                                    @checked(old("items.{$item->id}.completed", $item->completed_at))
+                                                    class="rounded border-gray-300 dark:border-gray-700 text-emerald-600 shadow-sm focus:ring-emerald-500">
+                                            </td>
+                                            <td class="px-3 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                <a href="{{ route('deliverables.show', $d) }}" class="hover:underline">{{ $d->name }}</a>
+                                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ $d->project->name }}</div>
+                                            </td>
+                                            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $d->project->client->legal_name }}</td>
+                                            <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
+                                                {{ TimeUnits::formatDaysWithHours($item->allocated_hours) }}
+                                            </td>
+                                            <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
+                                                {{ TimeUnits::formatHoursWithDays($item->hours_spent) }}
+                                            </td>
+                                            <td class="px-3 py-3 text-sm">
+                                                <input type="text"
+                                                    name="items[{{ $item->id }}][notes]"
+                                                    value="{{ old("items.{$item->id}.notes", $item->notes) }}"
+                                                    placeholder="Outcome / blocker / next step…"
+                                                    class="w-full text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

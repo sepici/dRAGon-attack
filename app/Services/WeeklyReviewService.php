@@ -59,23 +59,40 @@ class WeeklyReviewService
                 $nextEnd,
             );
 
+            // Roll forward BOTH shapes: deliverable allocations and milestone
+            // envelopes. The exactly-one invariant is preserved by copying
+            // exactly the same id (only one of the two will be non-null).
             $period->items()
-                ->whereNotNull('deliverable_id')
                 ->whereNull('completed_at')
                 ->get()
                 ->each(function (PlanItem $item) use ($nextPeriod) {
-                    $exists = $nextPeriod->items()
-                        ->where('deliverable_id', $item->deliverable_id)
-                        ->exists();
-                    if ($exists) {
-                        return;
+                    if ($item->deliverable_id) {
+                        $dup = $nextPeriod->items()
+                            ->where('deliverable_id', $item->deliverable_id)
+                            ->exists();
+                        if ($dup) {
+                            return;
+                        }
+                        $nextPeriod->items()->create([
+                            'deliverable_id' => $item->deliverable_id,
+                            'allocated_hours' => $item->allocated_hours,
+                            'notes' => $item->notes,
+                            'status' => Status::Red,
+                        ]);
+                    } elseif ($item->milestone_id) {
+                        $dup = $nextPeriod->items()
+                            ->where('milestone_id', $item->milestone_id)
+                            ->exists();
+                        if ($dup) {
+                            return;
+                        }
+                        $nextPeriod->items()->create([
+                            'milestone_id' => $item->milestone_id,
+                            'allocated_hours' => $item->allocated_hours,
+                            'notes' => $item->notes,
+                            'status' => Status::Red,
+                        ]);
                     }
-                    $nextPeriod->items()->create([
-                        'deliverable_id' => $item->deliverable_id,
-                        'allocated_hours' => $item->allocated_hours,
-                        'notes' => $item->notes,
-                        'status' => Status::Red,
-                    ]);
                 });
 
             return $nextPeriod;
@@ -110,9 +127,11 @@ class WeeklyReviewService
 
     private function recolour(PlanItem $item): Status
     {
-        $deliverable = $item->deliverable;
+        // Either deliverable or milestone is set (exactly one). Take whichever
+        // deadline is relevant.
+        $deadline = $item->deliverable?->deadline ?? $item->milestone?->deadline;
 
-        if ($deliverable && $deliverable->deadline && Carbon::parse($deliverable->deadline)->isPast()) {
+        if ($deadline && Carbon::parse($deadline)->isPast()) {
             return Status::Red;
         }
         // Derived from time_logs in the period's window. Any hours logged

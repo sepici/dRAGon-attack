@@ -15,6 +15,14 @@
         ['key' => 'G', 'label' => 'Green',   'count' => $statusCounts['G'], 'classes' => 'bg-green-600 text-white',   'desc' => "Delivered &amp; signed off"],
         ['key' => 'B', 'label' => 'Blocked', 'count' => $statusCounts['B'], 'classes' => 'bg-purple-600 text-white',  'desc' => "Waiting on someone else"],
     ];
+
+    $totalMilestones = array_sum($milestoneCounts);
+    $milestoneCards = [
+        ['count' => $milestoneCounts['R'], 'label' => 'Red',     'classes' => 'bg-red-500 text-white'],
+        ['count' => $milestoneCounts['A'], 'label' => 'Amber',   'classes' => 'bg-amber-500 text-white'],
+        ['count' => $milestoneCounts['G'], 'label' => 'Green',   'classes' => 'bg-green-600 text-white'],
+        ['count' => $milestoneCounts['B'], 'label' => 'Blocked', 'classes' => 'bg-purple-600 text-white'],
+    ];
 @endphp
 
 <x-app-layout>
@@ -95,6 +103,39 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400">{!! $sc['desc'] !!}</p>
                             </div>
                         @endforeach
+                    </div>
+                @endif
+            </div>
+
+            {{-- Milestones by status --}}
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Milestones by status</h3>
+                    <a href="{{ route('milestones.index') }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">View all ({{ $totalMilestones }})</a>
+                </div>
+                @if ($totalMilestones === 0)
+                    <div class="p-6 text-sm text-gray-500 dark:text-gray-400">
+                        No milestones yet. Small projects don't need them — but on larger projects, group deliverables into phases via
+                        <a href="{{ route('milestones.create') }}" class="text-indigo-600 dark:text-indigo-400 underline">Milestones</a>.
+                    </div>
+                @else
+                    <div class="p-6">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            @foreach ($milestoneCards as $mc)
+                                <div class="text-center">
+                                    <div class="inline-flex items-center justify-center w-14 h-14 rounded-full {{ $mc['classes'] }} text-2xl font-bold">
+                                        {{ $mc['count'] }}
+                                    </div>
+                                    <p class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $mc['label'] }}</p>
+                                </div>
+                            @endforeach
+                        </div>
+                        @if ($scopeNotConfirmedCount > 0)
+                            <p class="mt-4 text-xs text-amber-700 dark:text-amber-400">
+                                {{ $scopeNotConfirmedCount }} milestone{{ $scopeNotConfirmedCount === 1 ? '' : 's' }}
+                                with all-Green children but <em>scope not confirmed</em> — open them and tick "Scope is complete" once you're sure no deliverables are missing.
+                            </p>
+                        @endif
                     </div>
                 @endif
             </div>

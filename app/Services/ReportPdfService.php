@@ -45,19 +45,24 @@ class ReportPdfService
         $thisMonth = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Monthly);
         $thisQuarter = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Quarterly);
 
-        // Eager-load deliverable chains so the Blade template doesn't N+1
-        $with = ['deliverable.project.client'];
+        // Eager-load BOTH deliverable and milestone chains so the PDF table
+        // can group rows by milestone without N+1 queries.
+        $with = [
+            'deliverable.project.client',
+            'deliverable.milestone',
+            'milestone.project.client',
+        ];
 
-        // Hydrate derived hours_spent on every period's items in one
-        // grouped SUM per period (see PlanPeriod::loadHoursSpent).
+        // Hydrate derived hours_spent on every period's items (see
+        // PlanPeriod::loadHoursSpent — now handles both shapes).
         $thisWeek->load(['items' => fn ($q) => $q->with($with)]);
         $thisWeek->loadHoursSpent();
-        $thisMonth->load(['items' => fn ($q) => $q->whereNotNull('deliverable_id')->with($with)]);
+        $thisMonth->load(['items' => fn ($q) => $q->with($with)]);
         $thisMonth->loadHoursSpent();
-        $thisQuarter->load(['items' => fn ($q) => $q->whereNotNull('deliverable_id')->with($with)]);
+        $thisQuarter->load(['items' => fn ($q) => $q->with($with)]);
         $thisQuarter->loadHoursSpent();
         if ($nextWeek) {
-            $nextWeek->load(['items' => fn ($q) => $q->whereNotNull('deliverable_id')->with($with)]);
+            $nextWeek->load(['items' => fn ($q) => $q->with($with)]);
             $nextWeek->loadHoursSpent();
         }
 

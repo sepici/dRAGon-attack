@@ -154,9 +154,14 @@ class PlanPeriod extends Model
     }
 
     /**
-     * Hydrate each plan_item's derived hours_spent attribute with a single
-     * grouped SUM over time_logs. Call this in controllers before rendering
-     * a list of items, so the per-row accessor doesn't N+1 the DB.
+     * Hydrate each plan_item's derived hours_spent attribute with batched
+     * SUMs over time_logs. Two shapes share this period:
+     *
+     *   • Deliverable allocations  → SUM(time_logs.hours WHERE deliverable_id IN …)
+     *   • Milestone  allocations   → SUM of all logs across that milestone's
+     *                                child deliverables in the period window
+     *
+     * Both buckets are hydrated in a single query each (no N+1).
      *
      * Returns the period itself so callers can chain.
      */
@@ -167,28 +172,49 @@ class PlanPeriod extends Model
             return $this;
         }
 
+        // Default every item to 0 so callers can rely on the attribute
+        // being set even when no logs match.
+        $items->each(fn ($i) => $i->setAttribute('hours_spent', 0.0));
+
+        // --- Deliverable-type items ---------------------------------------
         $deliverableIds = $items->pluck('deliverable_id')->filter()->unique();
-        if ($deliverableIds->isEmpty()) {
-            // Nothing to sum — just zero everyone out.
-            $items->each(fn ($i) => $i->setAttribute('hours_spent', 0.0));
-            return $this;
+        if ($deliverableIds->isNotEmpty()) {
+            $delivSums = TimeLog::query()
+                ->where('owner_id', $this->owner_id)
+                ->whereDate('log_date', '>=', $this->starts_on)
+                ->whereDate('log_date', '<=', $this->ends_on)
+                ->whereIn('deliverable_id', $deliverableIds)
+                ->selectRaw('deliverable_id, SUM(hours) as total')
+                ->groupBy('deliverable_id')
+                ->pluck('total', 'deliverable_id');
+
+            $items->each(function ($item) use ($delivSums) {
+                if ($item->deliverable_id) {
+                    $item->setAttribute('hours_spent', (float) ($delivSums[$item->deliverable_id] ?? 0));
+                }
+            });
         }
 
-        $sums = TimeLog::query()
-            ->where('owner_id', $this->owner_id)
-            ->whereDate('log_date', '>=', $this->starts_on)
-            ->whereDate('log_date', '<=', $this->ends_on)
-            ->whereIn('deliverable_id', $deliverableIds)
-            ->selectRaw('deliverable_id, SUM(hours) as total')
-            ->groupBy('deliverable_id')
-            ->pluck('total', 'deliverable_id');
+        // --- Milestone-type items -----------------------------------------
+        // Sum logs grouped by deliverable.milestone_id within the period.
+        $milestoneIds = $items->pluck('milestone_id')->filter()->unique();
+        if ($milestoneIds->isNotEmpty()) {
+            $mileSums = TimeLog::query()
+                ->where('time_logs.owner_id', $this->owner_id)
+                ->whereDate('time_logs.log_date', '>=', $this->starts_on)
+                ->whereDate('time_logs.log_date', '<=', $this->ends_on)
+                ->join('deliverables', 'deliverables.id', '=', 'time_logs.deliverable_id')
+                ->whereIn('deliverables.milestone_id', $milestoneIds)
+                ->selectRaw('deliverables.milestone_id as mid, SUM(time_logs.hours) as total')
+                ->groupBy('deliverables.milestone_id')
+                ->pluck('total', 'mid');
 
-        $items->each(function ($item) use ($sums) {
-            $item->setAttribute(
-                'hours_spent',
-                (float) ($sums[$item->deliverable_id] ?? 0),
-            );
-        });
+            $items->each(function ($item) use ($mileSums) {
+                if ($item->milestone_id) {
+                    $item->setAttribute('hours_spent', (float) ($mileSums[$item->milestone_id] ?? 0));
+                }
+            });
+        }
 
         return $this;
     }
