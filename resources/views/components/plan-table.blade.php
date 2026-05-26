@@ -10,6 +10,10 @@
     // Show the "Client" column. Same idea — hide on a client-scoped page.
     'showClient' => true,
 
+    // Show the "Milestone" column. Defaults to false because most surrounding
+    // contexts (project page, plan views) already make milestone obvious.
+    'showMilestone' => false,
+
     // Show an extra "Allocated" column. Used by Weekly/Monthly/Quarterly
     // plan views; not used on the master Deliverables table.
     'showAllocation' => false,
@@ -47,6 +51,9 @@
                     @if ($showClient)
                         <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Client</th>
                     @endif
+                    @if ($showMilestone)
+                        <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Milestone</th>
+                    @endif
                     <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="days (hours)">Target</th>
                     @if ($showAllocation)
                         <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="days (hours)">Allocated</th>
@@ -76,6 +83,17 @@
                         @if ($showClient)
                             <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                                 {{ $deliverable->project->client->legal_name }}
+                            </td>
+                        @endif
+                        @if ($showMilestone)
+                            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                @if ($deliverable->milestone)
+                                    <a href="{{ route('milestones.show', $deliverable->milestone) }}" class="hover:underline">
+                                        {{ $deliverable->milestone->name }}
+                                    </a>
+                                @else
+                                    <span class="text-gray-400">—</span>
+                                @endif
                             </td>
                         @endif
                         <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
@@ -115,7 +133,7 @@
                     </tr>
                 @empty
                     @php
-                        $cols = 6 + ($showProject ? 1 : 0) + ($showClient ? 1 : 0) + ($showAllocation ? 1 : 0);
+                        $cols = 6 + ($showProject ? 1 : 0) + ($showClient ? 1 : 0) + ($showMilestone ? 1 : 0) + ($showAllocation ? 1 : 0);
                     @endphp
                     <tr>
                         <td colspan="{{ $cols }}" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
@@ -129,7 +147,7 @@
                 <tfoot class="bg-gray-50 dark:bg-gray-900/30 font-medium">
                     <tr>
                         <td class="px-3 py-2 text-right text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400"
-                            colspan="{{ 1 + ($showProject ? 1 : 0) + ($showClient ? 1 : 0) }}">
+                            colspan="{{ 1 + ($showProject ? 1 : 0) + ($showClient ? 1 : 0) + ($showMilestone ? 1 : 0) }}">
                             Totals
                         </td>
                         <td class="px-3 py-2 text-right text-sm text-gray-900 dark:text-gray-100">

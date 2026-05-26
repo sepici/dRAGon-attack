@@ -49,6 +49,18 @@
                         </dd>
                     </div>
                     <div>
+                        <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Milestone</dt>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">
+                            @if ($deliverable->milestone)
+                                <a href="{{ route('milestones.show', $deliverable->milestone) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                                    {{ $deliverable->milestone->name }}
+                                </a>
+                            @else
+                                <span class="text-gray-400">—</span>
+                            @endif
+                        </dd>
+                    </div>
+                    <div>
                         <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deadline</dt>
                         <dd class="mt-1 text-gray-900 dark:text-gray-100">
                             {{ $deliverable->deadline ? $deliverable->deadline->format('d M Y') : '—' }}

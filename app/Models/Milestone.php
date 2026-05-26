@@ -35,8 +35,14 @@ class Milestone extends Model
         'sort_order',
     ];
 
+    /**
+     * target_hours is a nullable decimal — and Laravel's built-in `decimal:N`
+     * cast turns a stored NULL into '0.00' (because PHP's number_format(null)
+     * is '0.00'), which collapses the distinction between "no target, derive
+     * from children" and "explicit 0 target". We keep the raw string the
+     * driver gives us and let consumers cast to float as needed.
+     */
     protected $casts = [
-        'target_hours' => 'decimal:2',
         'deadline' => 'date',
         'moscow' => Moscow::class,
         'scope_complete' => 'boolean',

@@ -64,6 +64,8 @@ class ProjectController extends Controller
         $project->load([
             'client',
             'responsibleContact',
+            'milestones' => fn ($q) => $q->orderBy('sort_order')->orderBy('id'),
+            'milestones.deliverables',
             'deliverables' => fn ($q) => $q->orderBy('deadline')->orderBy('name'),
         ]);
 

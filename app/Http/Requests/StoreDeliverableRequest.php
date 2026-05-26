@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\Moscow;
 use App\Enums\Status;
 use App\Models\ContactPerson;
+use App\Models\Milestone;
 use App\Models\Project;
 use App\Support\TimeUnits;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,10 +25,19 @@ class StoreDeliverableRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        if ($this->has('target_days') && $this->input('target_days') !== '') {
+        // filled() correctly excludes both '' and null — important because
+        // ConvertEmptyStringsToNull rewrites '' to null before this runs,
+        // and a !== '' check would otherwise pass null through.
+        if ($this->filled('target_days')) {
             $this->merge([
                 'target_hours' => TimeUnits::hoursFromDays((float) $this->input('target_days')),
             ]);
+        }
+
+        // "— No milestone —" submits as empty string; normalise to null so the
+        // `exists` rule doesn't trip and the model stores NULL.
+        if ($this->input('milestone_id') === '' || $this->input('milestone_id') === null) {
+            $this->merge(['milestone_id' => null]);
         }
     }
 
@@ -40,6 +50,21 @@ class StoreDeliverableRequest extends FormRequest
             ],
             'name' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string'],
+            // Optional milestone — must belong to the same project as the deliverable.
+            'milestone_id' => [
+                'nullable',
+                'integer',
+                'exists:milestones,id',
+                function ($attribute, $value, $fail) {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    $milestone = Milestone::find($value);
+                    if ($milestone && (int) $milestone->project_id !== (int) $this->input('project_id')) {
+                        $fail('The selected milestone must belong to the chosen project.');
+                    }
+                },
+            ],
             // Days input — half-day increments, capped at ~250 working days.
             'target_days' => ['required', 'numeric', 'min:0', 'max:250', 'multiple_of:0.5'],
             // Derived from target_days in prepareForValidation; we re-validate

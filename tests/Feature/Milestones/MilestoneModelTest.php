@@ -32,9 +32,13 @@ class MilestoneModelTest extends TestCase
     {
         $user = User::factory()->create();
         $project = Project::factory()->create(['owner_id' => $user->id]);
+        // Pin target_hours to null so tests that depend on "no manual target"
+        // are deterministic. The factory's default is fake()->optional(0.5),
+        // which would otherwise make ~half of the runs flaky.
         $milestone = Milestone::factory()->create([
             'project_id' => $project->id,
             'name' => 'Phase 1',
+            'target_hours' => null,
         ]);
         return [$user, $project, $milestone];
     }

@@ -83,19 +83,47 @@
                 </p>
             </div>
 
-            {{-- Claude Desktop with MCP --}}
+            {{-- Claude Desktop — remote MCP (recommended) --}}
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Claude Desktop (MCP)</h3>
+                <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Claude Desktop — remote (recommended)</h3>
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Native to Claude. Plugs the API in as a set of named tools Claude can call directly.
+                    Zero per-device install. Claude Desktop connects to the hosted MCP server over HTTPS with your API token.
                 </p>
                 <ol class="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300 list-decimal list-inside">
-                    <li>Clone the repo and build the reference server:
+                    <li>Open <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows). Add:
+<pre class="mt-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-2 overflow-x-auto font-mono text-xs"><code>{
+  "mcpServers": {
+    "dragonattack": {
+      "type": "http",
+      "url": "{{ url('/mcp') }}",
+      "headers": {
+        "Authorization": "Bearer &lt;your-token-here&gt;"
+      }
+    }
+  }
+}</code></pre>
+                    </li>
+                    <li>Replace <code>&lt;your-token-here&gt;</code> with a token from <a href="{{ route('profile.edit') }}" class="text-indigo-600 dark:text-indigo-400 underline">your profile</a>.</li>
+                    <li>Quit and relaunch Claude. The hammer icon should list 21 <strong>dragonattack</strong> tools, served from the cloud.</li>
+                </ol>
+                <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    The same config works on any device. Revoke the token here to cut access instantly.
+                </p>
+            </div>
+
+            {{-- Claude Desktop — local stdio (dev) --}}
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Claude Desktop — local stdio (for dev)</h3>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Runs the MCP server as a subprocess on your machine. Useful while iterating on <code>mcp/src/tools.ts</code>.
+                </p>
+                <ol class="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300 list-decimal list-inside">
+                    <li>Build the server:
 <pre class="mt-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-2 overflow-x-auto font-mono text-xs"><code>cd path/to/rag-tracker/mcp
 npm install
 npm run build</code></pre>
                     </li>
-                    <li>Open <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows) and add:
+                    <li>Add to <code>claude_desktop_config.json</code>:
 <pre class="mt-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-2 overflow-x-auto font-mono text-xs"><code>{
   "mcpServers": {
     "dragonattack": {
@@ -109,11 +137,7 @@ npm run build</code></pre>
   }
 }</code></pre>
                     </li>
-                    <li>Quit and relaunch Claude. The hammer icon in the chat input should list 21 <strong>dragonattack</strong> tools.</li>
                 </ol>
-                <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    Try: <em>"Log 1.5 hours on Clonallon Proposal today."</em> Claude calls <code>log_time</code> with the fuzzy name — the API resolves to the right deliverable.
-                </p>
             </div>
 
             {{-- curl / generic --}}

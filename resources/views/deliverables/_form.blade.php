@@ -8,8 +8,9 @@
 --}}
 
 @php
-    // Flatten projects → { project_id: { client_name, contacts: [{id,name}] } }
-    // so Alpine can show the right contact checkboxes for the selected project.
+    // Flatten projects → { project_id: { client_name, contacts, milestones } }
+    // so Alpine can dynamically filter contact + milestone options when the
+    // project selection changes.
     $projectsJs = $projects->mapWithKeys(fn ($p) => [
         $p->id => [
             'client_name' => $p->client->legal_name,
@@ -17,10 +18,15 @@
                 'id' => $cp->id,
                 'name' => $cp->full_name . ($cp->role_title ? " ({$cp->role_title})" : ''),
             ])->values(),
+            'milestones' => $p->milestones->map(fn ($m) => [
+                'id' => $m->id,
+                'name' => $m->name,
+            ])->values(),
         ],
     ]);
 
     $selectedProjectId = old('project_id', $deliverable->project_id);
+    $selectedMilestoneId = old('milestone_id', $deliverable->milestone_id);
     $oldContactIds = old('contact_ids');
     if ($oldContactIds === null) {
         $oldContactIds = $isEdit ? $deliverable->contactPersons->pluck('id')->all() : [];
@@ -30,10 +36,16 @@
 <div x-data="{
         projects: @js($projectsJs),
         projectId: '{{ $selectedProjectId }}',
+        milestoneId: '{{ $selectedMilestoneId }}',
         contactIds: @js(array_map('intval', (array) $oldContactIds)),
         get availableContacts() {
             return this.projectId && this.projects[this.projectId]
                 ? this.projects[this.projectId].contacts
+                : [];
+        },
+        get availableMilestones() {
+            return this.projectId && this.projects[this.projectId]
+                ? this.projects[this.projectId].milestones
                 : [];
         },
         get clientName() {
@@ -42,9 +54,14 @@
                 : '';
         },
         onProjectChange() {
-            // Drop any contact_ids that no longer belong to this project's client
-            const valid = this.availableContacts.map(c => c.id);
-            this.contactIds = this.contactIds.filter(id => valid.includes(id));
+            // Drop contact_ids that no longer belong to this project's client.
+            const validContactIds = this.availableContacts.map(c => c.id);
+            this.contactIds = this.contactIds.filter(id => validContactIds.includes(id));
+            // Clear milestone if it no longer belongs to the selected project.
+            const validMilestoneIds = this.availableMilestones.map(m => String(m.id));
+            if (this.milestoneId && !validMilestoneIds.includes(String(this.milestoneId))) {
+                this.milestoneId = '';
+            }
         },
         toggleContact(id) {
             const i = this.contactIds.indexOf(id);
@@ -72,6 +89,25 @@
         @endif
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="clientName" x-cloak>
             Client: <span class="font-medium" x-text="clientName"></span>
+        </p>
+    </div>
+
+    {{-- Milestone (optional, filtered by selected project) --}}
+    <div>
+        <x-input-label for="milestone_id" :value="__('Milestone (optional)')" />
+        <select id="milestone_id" name="milestone_id"
+            x-model="milestoneId"
+            class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+            <option value="">— No milestone —</option>
+            <template x-for="m in availableMilestones" :key="m.id">
+                <option :value="m.id" x-text="m.name"></option>
+            </template>
+        </select>
+        <x-input-error class="mt-2" :messages="$errors->get('milestone_id')" />
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+           x-show="projectId && availableMilestones.length === 0" x-cloak>
+            This project has no milestones yet.
+            <a href="{{ route('milestones.create') }}" class="underline">Create one</a> to group deliverables.
         </p>
     </div>
 

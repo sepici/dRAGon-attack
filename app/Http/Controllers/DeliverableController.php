@@ -27,7 +27,7 @@ class DeliverableController extends Controller
     {
         $user = auth()->user();
 
-        $query = Deliverable::with(['project.client'])
+        $query = Deliverable::with(['project.client', 'milestone'])
             ->withHoursSpent()
             ->orderBy('deadline')
             ->orderBy('name');
@@ -43,10 +43,23 @@ class DeliverableController extends Controller
 
     public function create(): View
     {
+        // If ?milestone= is supplied, prefill both the milestone and its
+        // owning project so the "Add deliverable" button on a milestone page
+        // lands on the right project+milestone combo.
+        $milestoneId = request()->integer('milestone') ?: null;
+        $projectId = request()->integer('project') ?: null;
+        if ($milestoneId && ! $projectId) {
+            $milestone = \App\Models\Milestone::find($milestoneId);
+            if ($milestone) {
+                $projectId = $milestone->project_id;
+            }
+        }
+
         $deliverable = new Deliverable([
             'status' => 'R',
             'target_hours' => 0,
-            'project_id' => request()->integer('project'), // prefill from ?project=
+            'project_id' => $projectId,
+            'milestone_id' => $milestoneId,
         ]);
         $projects = $this->projectsWithContacts();
 
@@ -69,7 +82,7 @@ class DeliverableController extends Controller
 
     public function show(Deliverable $deliverable): View
     {
-        $deliverable->load(['project.client', 'contactPersons']);
+        $deliverable->load(['project.client', 'milestone', 'contactPersons']);
         // Derived hours_spent for this single row.
         $deliverable->setAttribute('hours_spent', (float) $deliverable->timeLogs()->sum('hours'));
 
@@ -109,7 +122,8 @@ class DeliverableController extends Controller
 
     /**
      * Helper — the auth user's projects, each with its client's contacts
-     * eager-loaded, for the form's project + contact selectors.
+     * and its milestones eager-loaded, for the form's project / contact /
+     * milestone selectors.
      */
     private function projectsWithContacts()
     {
@@ -118,6 +132,7 @@ class DeliverableController extends Controller
             ->with([
                 'client',
                 'client.contactPersons' => fn ($q) => $q->orderBy('last_name'),
+                'milestones' => fn ($q) => $q->orderBy('sort_order')->orderBy('id'),
             ])
             ->orderBy('name')
             ->get();

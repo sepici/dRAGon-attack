@@ -25,6 +25,7 @@
 
             <x-plan-table
                 :deliverables="$deliverables"
+                :show-milestone="true"
                 empty-message="No deliverables yet. Start by creating one." />
         </div>
     </div>

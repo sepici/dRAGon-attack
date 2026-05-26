@@ -7,6 +7,7 @@ use App\Http\Controllers\ContactPersonController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\JournalController;
+use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlanItemController;
 use App\Http\Controllers\ProfileController;
@@ -48,6 +49,10 @@ Route::middleware(['auth', 'role:user'])->group(function () {
 
     // Projects (flat resource — projects.client_id picks the parent client)
     Route::resource('projects', ProjectController::class);
+
+    // Milestones — optional grouping layer between Project and Deliverable.
+    // Small projects skip this; big ones use it to phase work.
+    Route::resource('milestones', MilestoneController::class);
 
     // Deliverables — the master tracker table. project_id picks the parent.
     Route::resource('deliverables', DeliverableController::class);

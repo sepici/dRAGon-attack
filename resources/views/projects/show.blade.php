@@ -93,6 +93,52 @@
                 </div>
             </div>
 
+            {{-- Milestones (optional grouping) --}}
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Milestones</h3>
+                    @can('update', $project)
+                        <a href="{{ route('milestones.create', ['project' => $project->id]) }}">
+                            <x-secondary-button>{{ __('Add milestone') }}</x-secondary-button>
+                        </a>
+                    @endcan
+                </div>
+                @if ($project->milestones->isEmpty())
+                    <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-4 text-sm text-gray-500 dark:text-gray-400">
+                        No milestones — small projects don't need them.
+                        Add some to group this project's deliverables into phases.
+                    </div>
+                @else
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg divide-y divide-gray-200 dark:divide-gray-700">
+                        @foreach ($project->milestones as $m)
+                            <div class="px-6 py-3 flex items-center justify-between gap-4">
+                                <div class="min-w-0 flex-1">
+                                    <a href="{{ route('milestones.show', $m) }}"
+                                       class="text-sm font-medium text-gray-900 dark:text-gray-100 hover:underline">
+                                        {{ $m->name }}
+                                    </a>
+                                    @if ($m->isScopeAmbiguous())
+                                        <span class="ml-1 inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300" title="All current deliverables are Green, but scope isn't confirmed.">scope?</span>
+                                    @endif
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ $m->deliverables->count() }} deliverable(s)
+                                        @if ($m->deadline)
+                                            · due {{ $m->deadline->format('d M Y') }}
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    @if ($m->moscow)
+                                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {{ $m->moscow->chipClasses() }}">{{ $m->moscow->value }}</span>
+                                    @endif
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {{ $m->status->chipClasses() }}">{{ $m->status->value }}</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
             {{-- Deliverables --}}
             <div>
                 <div class="flex items-center justify-between mb-2">

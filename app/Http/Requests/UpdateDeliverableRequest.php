@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\Moscow;
 use App\Enums\Status;
 use App\Models\ContactPerson;
+use App\Models\Milestone;
 use App\Models\Project;
 use App\Support\TimeUnits;
 use Illuminate\Foundation\Http\FormRequest;
@@ -20,10 +21,16 @@ class UpdateDeliverableRequest extends FormRequest
     /** See StoreDeliverableRequest::prepareForValidation. */
     protected function prepareForValidation(): void
     {
-        if ($this->has('target_days') && $this->input('target_days') !== '') {
+        if ($this->filled('target_days')) {
             $this->merge([
                 'target_hours' => TimeUnits::hoursFromDays((float) $this->input('target_days')),
             ]);
+        }
+
+        // "— No milestone —" submits as empty string; normalise to null so the
+        // `exists` rule doesn't trip and the model stores NULL (clearing the link).
+        if ($this->input('milestone_id') === '' || $this->input('milestone_id') === null) {
+            $this->merge(['milestone_id' => null]);
         }
     }
 
@@ -36,6 +43,21 @@ class UpdateDeliverableRequest extends FormRequest
             ],
             'name' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string'],
+            // Optional milestone — must belong to the same project as the deliverable.
+            'milestone_id' => [
+                'nullable',
+                'integer',
+                'exists:milestones,id',
+                function ($attribute, $value, $fail) {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    $milestone = Milestone::find($value);
+                    if ($milestone && (int) $milestone->project_id !== (int) $this->input('project_id')) {
+                        $fail('The selected milestone must belong to the chosen project.');
+                    }
+                },
+            ],
             'target_days' => ['required', 'numeric', 'min:0', 'max:250', 'multiple_of:0.5'],
             'target_hours' => ['required', 'numeric', 'min:0', 'max:2000'],
             'deadline' => ['nullable', 'date'],
