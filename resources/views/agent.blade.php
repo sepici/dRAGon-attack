@@ -26,7 +26,7 @@
                         Pick your tool below, paste the OpenAPI URL and the token into its config.
                     </li>
                     <li>
-                        Ask the agent things like "what did I work on this week?" or "log 2 hours on Clonallon today."
+                        Ask the agent things like "what did I work on this week?" or "log 2 hours on Acme today."
                     </li>
                 </ol>
             </div>
@@ -79,7 +79,7 @@
                     <li>Set a name / description / instructions on the Configure tab. Save.</li>
                 </ol>
                 <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    Try: <em>"Log 2 hours on Clonallon Proposal today."</em> ChatGPT will resolve the deliverable name and POST to <code>/time-logs</code>.
+                    Try: <em>"Log 2 hours on Acme Proposal today."</em> ChatGPT will resolve the deliverable name and POST to <code>/time-logs</code>.
                 </p>
             </div>
 
@@ -104,7 +104,7 @@
 }</code></pre>
                     </li>
                     <li>Replace <code>&lt;your-token-here&gt;</code> with a token from <a href="{{ route('profile.edit') }}" class="text-indigo-600 dark:text-indigo-400 underline">your profile</a>.</li>
-                    <li>Quit and relaunch Claude. The hammer icon should list 21 <strong>dragonattack</strong> tools, served from the cloud.</li>
+                    <li>Quit and relaunch Claude. The hammer icon should list 28 <strong>dragonattack</strong> tools, served from the cloud.</li>
                 </ol>
                 <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
                     The same config works on any device. Revoke the token here to cut access instantly.
@@ -119,7 +119,7 @@
                 </p>
                 <ol class="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300 list-decimal list-inside">
                     <li>Build the server:
-<pre class="mt-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-2 overflow-x-auto font-mono text-xs"><code>cd path/to/rag-tracker/mcp
+<pre class="mt-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-2 overflow-x-auto font-mono text-xs"><code>cd path/to/dRAGon-attack/mcp
 npm install
 npm run build</code></pre>
                     </li>
@@ -128,7 +128,7 @@ npm run build</code></pre>
   "mcpServers": {
     "dragonattack": {
       "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/rag-tracker/mcp/dist/index.js"],
+      "args": ["/ABSOLUTE/PATH/TO/dRAGon-attack/mcp/dist/index.js"],
       "env": {
         "DRAGONATTACK_API_URL": "{{ $apiBaseUrl }}",
         "DRAGONATTACK_API_TOKEN": "&lt;your-token-here&gt;"
@@ -159,7 +159,7 @@ npm run build</code></pre>
 <pre class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-3 overflow-x-auto font-mono"><code>curl -X POST {{ $apiBaseUrl }}/time-logs \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"hours": 2, "deliverable_name": "Clonallon Proposal"}'</code></pre>
+  -d '{"hours": 2, "deliverable_name": "Acme Proposal"}'</code></pre>
                     </div>
 
                     <div>

@@ -1,5 +1,5 @@
 {{--
-    Monthly timesheet PDF. Landscape A4. Matches the Onur layout:
+    Monthly timesheet PDF. Landscape A4. Standard month-grid layout:
     rows = projects + ad-hoc names, cols = days 1..N, right col = row total,
     bottom row = per-day totals, footer = "X Hours" / "Y Day(s) worked".
 

@@ -28,7 +28,7 @@ class TimesheetServiceTest extends TestCase
     public function test_generates_timesheet_row_persists_file(): void
     {
         $user = User::factory()->create();
-        $project = Project::factory()->create(['owner_id' => $user->id, 'name' => 'Magnolia']);
+        $project = Project::factory()->create(['owner_id' => $user->id, 'name' => 'Acme']);
         $d = Deliverable::factory()->create(['project_id' => $project->id]);
 
         TimeLog::factory()->create([
@@ -88,9 +88,9 @@ class TimesheetServiceTest extends TestCase
         // Build a small invocation against the PRIVATE buildGrid logic via
         // the same query path the service uses, then re-verify the totals.
         $user = User::factory()->create();
-        $magnolia = Project::factory()->create(['owner_id' => $user->id, 'name' => 'Magnolia']);
+        $acme = Project::factory()->create(['owner_id' => $user->id, 'name' => 'Acme']);
         $titan = Project::factory()->create(['owner_id' => $user->id, 'name' => 'Titan API']);
-        $dM = Deliverable::factory()->create(['project_id' => $magnolia->id]);
+        $dM = Deliverable::factory()->create(['project_id' => $acme->id]);
         $dT = Deliverable::factory()->create(['project_id' => $titan->id]);
 
         // Two deliverables on the same day → should aggregate at the project level.
@@ -122,7 +122,7 @@ class TimesheetServiceTest extends TestCase
             ->groupBy(fn ($l) => $l->deliverable->project->name)
             ->map(fn ($g) => (float) $g->sum('hours'));
 
-        $this->assertEqualsWithDelta(2.0, (float) $projectTotals['Magnolia'], 0.01);
+        $this->assertEqualsWithDelta(2.0, (float) $projectTotals['Acme'], 0.01);
         $this->assertEqualsWithDelta(3.0, (float) $projectTotals['Titan API'], 0.01);
     }
 

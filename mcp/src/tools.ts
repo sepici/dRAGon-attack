@@ -507,7 +507,7 @@ export function buildTools(config: ApiConfig): Tool[] {
       definition: {
         name: "log_time",
         description:
-          "**THE primary write tool.** Log hours on a deliverable or as ad-hoc work. Pass exactly one of: deliverable_id (explicit), deliverable_name (fuzzy LIKE match — pass any unique substring like 'magnolia oauth'), or ad_hoc_name (for unplanned work). 'date' defaults to today; accepts 'today'/'yesterday'/ISO/natural language.",
+          "**THE primary write tool.** Log hours on a deliverable or as ad-hoc work. Pass exactly one of: deliverable_id (explicit), deliverable_name (fuzzy LIKE match — pass any unique substring like 'acme oauth'), or ad_hoc_name (for unplanned work). 'date' defaults to today; accepts 'today'/'yesterday'/ISO/natural language.",
         inputSchema: {
           type: "object",
           properties: {

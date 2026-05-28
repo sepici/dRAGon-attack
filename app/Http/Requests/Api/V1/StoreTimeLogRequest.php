@@ -22,7 +22,7 @@ use Illuminate\Validation\Validator;
  *
  *   {
  *     "hours": 2.5,
- *     "deliverable_name": "magnolia oauth",  // OR deliverable_id, OR ad_hoc_name
+ *     "deliverable_name": "acme oauth",  // OR deliverable_id, OR ad_hoc_name
  *     "date": "today",                       // optional, defaults to today
  *     "notes": "OAuth wiring"                // optional
  *   }

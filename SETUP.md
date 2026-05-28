@@ -23,21 +23,21 @@ In your browser:
 
 1. Go to https://github.com/new
 2. Owner: **sepici**
-3. Repository name: **rag-tracker**
+3. Repository name: **dRAGon-attack**
 4. Visibility: **Private**
 5. Do **NOT** initialise with README, .gitignore, or license (this folder already has those).
 6. Click *Create repository*.
 
 GitHub will show a "…or push an existing repository" snippet. Note the URL — it'll be either:
-- HTTPS: `https://github.com/sepici/rag-tracker.git`
-- SSH (recommended): `git@github.com:sepici/rag-tracker.git`
+- HTTPS: `https://github.com/sepici/dRAGon-attack.git`
+- SSH (recommended): `git@github.com:sepici/dRAGon-attack.git`
 
 ## 2. Initialise git and push the skeleton
 
-The project already lives at `~/Development/rag-tracker/`. Open Terminal:
+The project already lives at `~/Development/dRAGon-attack/`. Open Terminal:
 
 ```bash
-cd ~/Development/rag-tracker
+cd ~/Development/dRAGon-attack
 git init -b main
 git config user.name "Sep"
 git config user.email "sepici@gmail.com"
@@ -45,7 +45,7 @@ git add .
 git commit -m "Initial skeleton — README, .gitignore, design doc, setup guide"
 
 # Wire up GitHub
-git remote add origin git@github.com:sepici/rag-tracker.git    # or HTTPS URL
+git remote add origin git@github.com:sepici/dRAGon-attack.git    # or HTTPS URL
 git push -u origin main
 ```
 
@@ -56,7 +56,7 @@ You should now see the README, .gitignore, and docs/design.md on GitHub.
 Laravel adds a lot of files — we'll let Composer scaffold them without overwriting our README, .gitignore, or docs.
 
 ```bash
-cd ~/Development/rag-tracker
+cd ~/Development/dRAGon-attack
 
 # Composer will refuse to install into a non-empty dir, so use a temp dir
 composer create-project laravel/laravel:^11 _laravel-temp
@@ -120,7 +120,7 @@ git push
 ## 8. Cloudways deployment (when you're ready)
 
 1. In Cloudways, create a new application: **PHP Stack**, PHP 8.2+, MySQL 8.
-2. Application Settings → Deployment via Git → connect GitHub → select `sepici/rag-tracker` → branch `main`.
+2. Application Settings → Deployment via Git → connect GitHub → select `sepici/dRAGon-attack` → branch `main`.
 3. Authentication: you'll set this up later — either Cloudways' deploy SSH key (recommended) or a Personal Access Token.
 4. Deploy path: `public_html`.
 5. Post-deploy script:

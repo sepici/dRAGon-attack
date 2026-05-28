@@ -478,7 +478,7 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
                     'deliverable_name' => [
                         'type' => 'string',
                         'description' => 'Alternative to deliverable_id — LIKE-matches against the user\'s deliverable names. If no match the 422 lists candidate names.',
-                        'example' => 'magnolia oauth',
+                        'example' => 'acme oauth',
                     ],
                     'ad_hoc_name' => [
                         'type' => 'string',

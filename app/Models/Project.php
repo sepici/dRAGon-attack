@@ -35,8 +35,8 @@ class Project extends Model
     protected $appends = ['status'];
 
     // ---------- Computed status -------------------------------------------
-    // Project status = worst of its deliverables' statuses, per Andrew's
-    // framing (R > B > A > G). Stored nowhere — derived on read.
+    // Project status = worst of its deliverables' statuses
+    // (R > B > A > G). Stored nowhere — derived on read.
 
     public function getStatusAttribute(): Status
     {

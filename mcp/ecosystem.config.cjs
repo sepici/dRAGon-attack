@@ -3,7 +3,7 @@
  *
  * Usage on Cloudways (or any Linux host):
  *
- *   cd /path/to/rag-tracker/mcp
+ *   cd /path/to/dRAGon-attack/mcp
  *   npm install && npm run build
  *   pm2 start ecosystem.config.cjs
  *   pm2 save

@@ -103,7 +103,7 @@ class PlanPagesTest extends TestCase
         $project = Project::factory()->create(['owner_id' => $user->id]);
         $deliverable = Deliverable::factory()->create([
             'project_id' => $project->id,
-            'name' => 'Magnolia OAuth flow',
+            'name' => 'Acme OAuth flow',
         ]);
         $period = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
         PlanItem::factory()->create([

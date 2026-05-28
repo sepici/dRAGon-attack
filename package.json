@@ -1,4 +1,5 @@
 {
+    "name": "dragon-attack",
     "private": true,
     "type": "module",
     "scripts": {

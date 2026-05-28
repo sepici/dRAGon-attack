@@ -58,12 +58,12 @@ class WriteApiTest extends TestCase
         $project = Project::factory()->create(['owner_id' => $user->id]);
         $d = Deliverable::factory()->create([
             'project_id' => $project->id,
-            'name' => 'Magnolia OAuth flow',
+            'name' => 'Acme OAuth flow',
         ]);
 
         $response = $this->postJson('/api/v1/time-logs', [
             'hours' => 1.5,
-            'deliverable_name' => 'magnolia oauth',
+            'deliverable_name' => 'acme oauth',
             'date' => 'yesterday',
         ]);
 
@@ -78,7 +78,7 @@ class WriteApiTest extends TestCase
         $project = Project::factory()->create(['owner_id' => $user->id]);
         Deliverable::factory()->create([
             'project_id' => $project->id,
-            'name' => 'Magnolia OAuth flow',
+            'name' => 'Acme OAuth flow',
         ]);
 
         $response = $this->postJson('/api/v1/time-logs', [
@@ -91,7 +91,7 @@ class WriteApiTest extends TestCase
         $this->assertNotNull($errors);
         // The error message lists candidate deliverables to nudge the agent
         // toward a working call on the retry.
-        $this->assertStringContainsString('Magnolia OAuth flow', $errors[0]);
+        $this->assertStringContainsString('Acme OAuth flow', $errors[0]);
     }
 
     public function test_post_time_log_ad_hoc(): void

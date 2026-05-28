@@ -46,7 +46,7 @@ enum Status: string
      * (later) a monthly/quarterly plan's status from its weekly items.
      *
      * Priority order (worst first): R > B > A > G. Empty input → R, on the
-     * grounds that nothing-delivered is the default Red, per Andrew's framing.
+     * grounds that nothing-delivered is the default Red.
      */
     public static function rollup(iterable $statuses): self
     {

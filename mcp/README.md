@@ -31,7 +31,7 @@ dialog, so they stay web-only on purpose.
 
 `log_time` accepts a fuzzy `deliverable_name` substring and a relative
 `date` (`"today"`, `"yesterday"`, natural language, or ISO), so a prompt
-like *"Log 2 hours on Clonallon Proposal today"* lands as one
+like *"Log 2 hours on Acme Proposal today"* lands as one
 properly-resolved API call.
 
 Milestones are an *optional* grouping layer — small projects skip them.
@@ -75,7 +75,7 @@ or `%APPDATA%\Claude\claude_desktop_config.json` (Windows). Add:
   "mcpServers": {
     "dragonattack": {
       "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/rag-tracker/mcp/dist/index.js"],
+      "args": ["/ABSOLUTE/PATH/TO/dRAGon-attack/mcp/dist/index.js"],
       "env": {
         "DRAGONATTACK_API_URL": "https://dragonattack.tr/api/v1",
         "DRAGONATTACK_API_TOKEN": "1|paste-your-token-here"
@@ -85,7 +85,7 @@ or `%APPDATA%\Claude\claude_desktop_config.json` (Windows). Add:
 }
 ```
 
-Quit and relaunch Claude. The hammer icon should list 21 `dragonattack` tools.
+Quit and relaunch Claude. The hammer icon should list 28 `dragonattack` tools.
 
 ### Skip-the-build dev variant
 
@@ -93,8 +93,8 @@ For iterative development without rebuilding every change, point Claude at the
 local `tsx` binary on the TypeScript source directly:
 
 ```json
-"command": "/ABSOLUTE/PATH/TO/rag-tracker/mcp/node_modules/.bin/tsx",
-"args": ["/ABSOLUTE/PATH/TO/rag-tracker/mcp/src/index.ts"]
+"command": "/ABSOLUTE/PATH/TO/dRAGon-attack/mcp/node_modules/.bin/tsx",
+"args": ["/ABSOLUTE/PATH/TO/dRAGon-attack/mcp/src/index.ts"]
 ```
 
 `tsx` compiles on the fly; ~300ms slower Claude startup, no `dist/` to keep fresh.
@@ -258,7 +258,7 @@ config change needed.
 
 In Claude, after wiring up either mode:
 
-> Log 1.5 hours on the Clonallon Proposal today.
+> Log 1.5 hours on the Acme Proposal today.
 
 > What's on my weekly plan?
 

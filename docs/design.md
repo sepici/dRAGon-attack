@@ -8,7 +8,7 @@ The data model and behaviour come from two places:
 
 1. A working RAG spreadsheet (`RAG_Tracker.xlsx`) used for weekly client status reporting — projects, deliverables, MoSCoW priority, RAG status, days of effort, weekly + monthly + quarterly plans, ad-hoc backlog.
 
-2. A May 2026 review with Andrew, which flagged structural issues with the spreadsheet:
+2. A May 2026 review that flagged structural issues with the spreadsheet:
    - RAG without target dates is meaningless.
    - "Working on it" ≠ delivered. Status must reflect the *outcome* (signed off + tested), not the task.
    - Most rows should default to **R**, not A/G — leadership needs to see what won't deliver, early.

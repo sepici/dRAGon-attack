@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 /**
  * Generates the monthly timesheet PDF.
  *
- * Layout mirrors the Onur sample:
+ * Standard monthly-timesheet grid:
  *   - rows = projects + distinct ad-hoc names
  *   - columns = day 1..N for the chosen month
  *   - cells = SUM(time_logs.hours) for that (row, day)

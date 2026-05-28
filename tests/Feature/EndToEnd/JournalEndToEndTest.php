@@ -37,11 +37,11 @@ class JournalEndToEndTest extends TestCase
         ]);
         $project = Project::factory()->create([
             'owner_id' => $user->id,
-            'name' => 'Magnolia',
+            'name' => 'Acme',
         ]);
         $deliverable = Deliverable::factory()->create([
             'project_id' => $project->id,
-            'name' => 'Magnolia OAuth flow',
+            'name' => 'Acme OAuth flow',
             'target_hours' => 16.0, // 2 days
         ]);
         $period = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
@@ -62,7 +62,7 @@ class JournalEndToEndTest extends TestCase
         // ----- 2. Deliverable show reflects the spend -----
         $response = $this->actingAs($user)->get("/deliverables/{$deliverable->id}");
         $response->assertOk();
-        $response->assertSee('Magnolia OAuth flow');
+        $response->assertSee('Acme OAuth flow');
         $response->assertSee('4h (0.5d)');     // Spent
         $response->assertSee('2d (16h)');      // Target
         $response->assertSee('1.5d (12h)');    // Remaining
@@ -70,14 +70,14 @@ class JournalEndToEndTest extends TestCase
         // ----- 3. Plan view shows the period-scoped spend -----
         $response = $this->actingAs($user)->get('/plans/weekly');
         $response->assertOk();
-        $response->assertSee('Magnolia OAuth flow');
+        $response->assertSee('Acme OAuth flow');
         $response->assertSee('4h (0.5d)');     // Spent column (period-scoped)
         $response->assertSee('2d (16h)');      // Allocated (days-leading)
 
         // ----- 4. Weekly review shows the derived spend, read-only -----
         $response = $this->actingAs($user)->get('/review');
         $response->assertOk();
-        $response->assertSee('Magnolia OAuth flow');
+        $response->assertSee('Acme OAuth flow');
         $response->assertSee('4h (0.5d)');
         // Confirms no hours_spent input field for that plan_item — the
         // review is read-only post-M8d.

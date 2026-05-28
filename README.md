@@ -1,6 +1,6 @@
 # dRAGonattack Tracker
 
-> Repo: `rag-tracker` — lives at `github.com/sepici/rag-tracker`.
+> Repo: `dRAGon-attack` — lives at `github.com/sepici/dRAGon-attack`.
 
 A weekly / monthly / quarterly RAG (Red / Amber / Green) status tracker
 for client deliverables. Replaces a PowerPoint + spreadsheet workflow
@@ -32,6 +32,38 @@ script) can drive on your behalf.
 | Exports → Reports | Generate the weekly PDF (last week's review + next week's plan + month + quarter) |
 | Exports → Timesheets | Monthly grid PDF (rows = projects, columns = days 1..N, cells = hours) for client invoicing or HR |
 | Connect AI | Copy-paste guides for plugging Claude / ChatGPT / curl / n8n into the API |
+
+## Using the app
+
+A typical workflow once you're set up:
+
+1. **First login (admin).** After `php artisan db:seed` (see [`SETUP.md`](SETUP.md)) you have one admin account. The admin only manages users — it doesn't touch tracker data. Create at least one **user** account from `/admin/users`.
+
+2. **Sign in as a user.** All your tracker data lives under your own user. Other users on the same install never see your clients, projects, or hours.
+
+3. **Add your clients.** *Tracker → Clients → New client.* Optionally add contact persons for each client (they show up later as "responsible contact" pickers on deliverables).
+
+4. **Add projects.** *Tracker → Projects → New project.* One client per project. Set an optional deadline.
+
+5. **(Optional) Add milestones.** Useful for projects with phased work, or when you want to forward-plan in chunks before you've scoped the specific deliverables. *Tracker → Milestones → New milestone.* Small projects skip this layer entirely.
+
+6. **Add deliverables.** *Tracker → Deliverables → New deliverable.* Pick the project, optionally pick a milestone in that project, set a target in days, MoSCoW priority, deadline, and starting RAG status (defaults to **R**). The status reflects the *outcome* — flip to **G** only when the deliverable is delivered, tested, and signed off.
+
+7. **Plan the week.** *Plans → Weekly.* Allocate deliverables (or milestone envelopes) to this week in half-day increments. The capacity widget tells you if you're over-committed.
+
+8. **Plan the month and quarter the same way.** *Plans → Monthly / Quarterly.* Same controls; bigger windows. These feed into the weekly PDF report.
+
+9. **Log time daily.** *Journal → today.* Add rows for each deliverable you worked on, plus any ad-hoc rows for unplanned work (meetings, support, admin). Half-hour increments. This is the single source of truth for "what did I do" — every other "spent" number on every other page is derived from it.
+
+10. **Friday: weekly review.** *Review.* Tick deliverables you've actually finished (delivered + signed off), add a one-line outcome / blocker note, then **Roll incomplete forward** copies anything still open into next week's plan as Red.
+
+11. **End of week: generate the report.** *Exports → Reports → Generate.* Produces a PDF with last week's review, next week's plan, and the current monthly / quarterly views — ready to attach to an email to leadership.
+
+12. **End of month: generate the timesheet.** *Exports → Timesheets → Generate.* Landscape A4 PDF with project rows × day columns — the standard format for client invoicing or HR submission.
+
+13. **(Optional) Connect an AI agent.** *Connect AI* in the user dropdown. Issue a Sanctum token, then point Claude / ChatGPT / curl / n8n / the included MCP server at the OpenAPI spec. Prompts like *"log 2 hours on Acme today"* land as a single fuzzy-matched API call.
+
+You can drive everything through the web UI, or through the API once a token is issued — they edit the same database.
 
 ## How time gets tracked
 
@@ -78,14 +110,14 @@ Sanctum bearer tokens.
   `tracker:write`, plus `read:all` / `write:all` wildcards). Show-once
   plaintext, revocable anytime.
 - **Reference MCP server** in [`mcp/`](mcp/README.md) — TypeScript,
-  17 tools, hand-curated descriptions tuned for Claude Desktop.
+  28 tools, hand-curated descriptions tuned for Claude Desktop.
 - **In-app connection guide** at `/agent` with copy-paste snippets for
   Claude Desktop, ChatGPT Custom GPTs, and raw curl.
 
 The headline agent ergonomics:
 
 - `POST /api/v1/time-logs` takes `deliverable_name` as a fuzzy
-  substring — "magnolia oauth" resolves to the right deliverable id.
+  substring — "acme oauth" resolves to the right deliverable id.
   A miss returns a 422 listing candidate names so the agent can
   self-correct on retry.
 - `date` fields accept `"today"`, `"yesterday"`, ISO, or natural-
@@ -105,9 +137,10 @@ structure, and milestone history.
 
 ## Source
 
-The data model came out of a real-world RAG sheet review with Andrew
-(May 2026). Notes in [`docs/design.md`](docs/design.md#why-this-shape).
+The data model started with a mixture of a RAG sheet with MoSCoW with
+features that make life easier for developers and project managers.
+Notes in [`docs/design.md`](docs/design.md#why-this-shape).
 
 ## License
 
-Private / internal. No license granted.
+MIT — see [`LICENSE`](LICENSE).

@@ -151,7 +151,7 @@ class JournalControllerTest extends TestCase
         $project = Project::factory()->create(['owner_id' => $user->id]);
         $deliverable = Deliverable::factory()->create([
             'project_id' => $project->id,
-            'name' => 'Magnolia API client',
+            'name' => 'Acme API client',
         ]);
         $period = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
         PlanItem::factory()->create([
@@ -171,7 +171,7 @@ class JournalControllerTest extends TestCase
         $response = $this->actingAs($user)->get("/journal/{$today}");
 
         $response->assertOk();
-        $response->assertSee('Magnolia API client');
+        $response->assertSee('Acme API client');
         $response->assertSee('Hooked up auth.');
         $response->assertSee('3.5');
     }

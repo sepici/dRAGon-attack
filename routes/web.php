@@ -91,7 +91,7 @@ Route::middleware(['auth', 'role:user'])->group(function () {
     Route::post('reports/generate', [ReportController::class, 'generate'])->name('reports.generate');
     Route::get('reports/{report}/download', [ReportController::class, 'download'])->name('reports.download');
 
-    // Monthly timesheet PDFs (Onur-style month grid)
+    // Monthly timesheet PDFs (month-grid format)
     Route::get('timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');
     Route::post('timesheets/generate', [TimesheetController::class, 'generate'])->name('timesheets.generate');
     Route::get('timesheets/{timesheet}/download', [TimesheetController::class, 'download'])->name('timesheets.download');

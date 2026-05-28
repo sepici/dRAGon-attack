@@ -30,7 +30,7 @@ class TimeLogModelTest extends TestCase
             'deliverable_id' => $deliverable->id,
             'log_date' => '2026-05-15',
             'hours' => 2.5,
-            'notes' => 'Pair-programmed the OAuth flow with Onur.',
+            'notes' => 'Pair-programmed the OAuth flow.',
         ]);
 
         $this->assertFalse($log->isAdHoc());

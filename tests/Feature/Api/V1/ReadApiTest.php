@@ -96,7 +96,7 @@ class ReadApiTest extends TestCase
         $project = Project::factory()->create(['owner_id' => $user->id]);
         $deliverable = Deliverable::factory()->create([
             'project_id' => $project->id,
-            'name' => 'Magnolia OAuth',
+            'name' => 'Acme OAuth',
             'target_hours' => 16.0,
         ]);
         TimeLog::factory()->create([
@@ -111,7 +111,7 @@ class ReadApiTest extends TestCase
         $response->assertOk();
         $response->assertJson([
             'data' => [
-                'name' => 'Magnolia OAuth',
+                'name' => 'Acme OAuth',
                 'target_hours' => 16.0,
                 'target_days' => 2.0,
                 'hours_spent' => 5.5,
@@ -125,11 +125,11 @@ class ReadApiTest extends TestCase
     {
         $user = $this->actingAsUserWithAbilities([ApiAbility::TRACKER_READ]);
         $project = Project::factory()->create(['owner_id' => $user->id]);
-        Deliverable::factory()->create(['project_id' => $project->id, 'name' => 'Magnolia OAuth flow']);
-        Deliverable::factory()->create(['project_id' => $project->id, 'name' => 'Magnolia migration']);
+        Deliverable::factory()->create(['project_id' => $project->id, 'name' => 'Acme OAuth flow']);
+        Deliverable::factory()->create(['project_id' => $project->id, 'name' => 'Acme migration']);
         Deliverable::factory()->create(['project_id' => $project->id, 'name' => 'Titan API client']);
 
-        $response = $this->getJson('/api/v1/deliverables?name_like=magnolia');
+        $response = $this->getJson('/api/v1/deliverables?name_like=acme');
 
         $response->assertOk();
         $response->assertJsonCount(2, 'data');
