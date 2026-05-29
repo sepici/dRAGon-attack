@@ -18,7 +18,10 @@ class DeliverablePolicy
     public function view(User $user, Deliverable $deliverable): bool
     {
         if ($user->isViewer()) {
-            return true;
+            // Scope via deliverable → project → client → employer (M13c).
+            return $user->grantedEmployers()
+                ->where('employer_id', $deliverable->project?->client?->employer_id)
+                ->exists();
         }
 
         return $user->isUser() && $deliverable->project->owner_id === $user->id;

@@ -29,12 +29,12 @@
                             {{ __('Dashboard') }}
                         </x-nav-link>
 
-                        {{-- Tracker submenu (Clients / Projects / Milestones / Deliverables) --}}
+                        {{-- Tracker submenu (Employers / Clients / Projects / Milestones / Deliverables) --}}
                         <div class="hidden sm:flex sm:items-center -my-px">
                             <x-dropdown align="left" width="48">
                                 <x-slot name="trigger">
                                     <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out
-                                        {{ request()->routeIs('clients.*', 'projects.*', 'milestones.*', 'deliverables.*') ? 'border-indigo-400 dark:border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700' }}">
+                                        {{ request()->routeIs('employers.*', 'clients.*', 'projects.*', 'milestones.*', 'deliverables.*') ? 'border-indigo-400 dark:border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700' }}">
                                         {{ __('Tracker') }}
                                         <svg class="ms-1 fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -42,6 +42,7 @@
                                     </button>
                                 </x-slot>
                                 <x-slot name="content">
+                                    <x-dropdown-link :href="route('employers.index')">{{ __('Employers') }}</x-dropdown-link>
                                     <x-dropdown-link :href="route('clients.index')">{{ __('Clients') }}</x-dropdown-link>
                                     <x-dropdown-link :href="route('projects.index')">{{ __('Projects') }}</x-dropdown-link>
                                     <x-dropdown-link :href="route('milestones.index')">{{ __('Milestones') }}</x-dropdown-link>
@@ -128,6 +129,9 @@
                         </x-dropdown-link>
 
                         @if (Auth::user()->isUser())
+                            <x-dropdown-link :href="route('invitations.index')">
+                                {{ __('Viewer invitations') }}
+                            </x-dropdown-link>
                             <x-dropdown-link :href="route('agent.show')">
                                 {{ __('Connect AI') }}
                             </x-dropdown-link>
@@ -172,6 +176,9 @@
                 </x-responsive-nav-link>
 
                 <div class="px-4 pt-2 text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500">Tracker</div>
+                <x-responsive-nav-link :href="route('employers.index')" :active="request()->routeIs('employers.*')">
+                    {{ __('Employers') }}
+                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('clients.index')" :active="request()->routeIs('clients.*')">
                     {{ __('Clients') }}
                 </x-responsive-nav-link>

@@ -15,7 +15,10 @@ class ProjectPolicy
     public function view(User $user, Project $project): bool
     {
         if ($user->isViewer()) {
-            return true;
+            // Scope via project → client → employer (M13c).
+            return $user->grantedEmployers()
+                ->where('employer_id', $project->client?->employer_id)
+                ->exists();
         }
 
         return $user->isUser() && $project->owner_id === $user->id;

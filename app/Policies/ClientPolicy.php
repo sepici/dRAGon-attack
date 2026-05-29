@@ -22,7 +22,10 @@ class ClientPolicy
     public function view(User $user, Client $client): bool
     {
         if ($user->isViewer()) {
-            return true;
+            // Scoped to the viewer's granted employers (M13c).
+            return $user->grantedEmployers()
+                ->where('employer_id', $client->employer_id)
+                ->exists();
         }
 
         return $user->isUser() && $client->owner_id === $user->id;

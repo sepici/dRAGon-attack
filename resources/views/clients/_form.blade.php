@@ -1,9 +1,37 @@
 {{--
     Shared form fields for client create + edit.
     Expects:
-        $client  — the Client model (new on create, existing on edit)
-        $isEdit  — bool
+        $client     — the Client model (new on create, existing on edit)
+        $employers  — Collection of the auth user's employers, Self-first
+        $isEdit     — bool
 --}}
+@php
+    $onlySelf = $employers->count() === 1;
+    $selectedEmployerId = old('employer_id', $client->employer_id ?? $employers->first()?->id);
+@endphp
+
+{{-- Employer --}}
+@if ($onlySelf)
+    {{-- Hidden when the user only has Self — auto-attached so they don't see a one-option picker. --}}
+    <input type="hidden" name="employer_id" value="{{ $employers->first()->id }}">
+@else
+    <div>
+        <x-input-label for="employer_id" :value="__('Employer')" />
+        <select id="employer_id" name="employer_id" required
+            class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+            <option value="">— Pick employer —</option>
+            @foreach ($employers as $emp)
+                <option value="{{ $emp->id }}" @selected((int) $selectedEmployerId === (int) $emp->id)>
+                    {{ $emp->name }}@if ($emp->is_self) (Self)@endif
+                </option>
+            @endforeach
+        </select>
+        <x-input-error class="mt-2" :messages="$errors->get('employer_id')" />
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Which employer is this client under? Pick Self for direct-billed / personal work.
+        </p>
+    </div>
+@endif
 
 <div>
     <x-input-label for="legal_name" :value="__('Legal name')" />

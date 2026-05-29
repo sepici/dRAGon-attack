@@ -33,6 +33,17 @@
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                     <div>
+                        <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Employer</dt>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">
+                            <a href="{{ route('employers.show', $client->employer) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                                {{ $client->employer->name }}
+                            </a>
+                            @if ($client->employer->is_self)
+                                <span class="ml-1 inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">Self</span>
+                            @endif
+                        </dd>
+                    </div>
+                    <div>
                         <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</dt>
                         <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ $client->email ?: '—' }}</dd>
                     </div>

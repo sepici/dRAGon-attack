@@ -35,8 +35,9 @@ class ClientController extends Controller
     public function create(): View
     {
         $client = new Client();
+        $employers = $this->employersForCurrentUser();
 
-        return view('clients.create', compact('client'));
+        return view('clients.create', compact('client', 'employers'));
     }
 
     public function store(StoreClientRequest $request): RedirectResponse
@@ -50,14 +51,32 @@ class ClientController extends Controller
 
     public function show(Client $client): View
     {
-        $client->load(['contactPersons' => fn ($q) => $q->orderBy('last_name')]);
+        $client->load([
+            'employer',
+            'contactPersons' => fn ($q) => $q->orderBy('last_name'),
+        ]);
 
         return view('clients.show', compact('client'));
     }
 
     public function edit(Client $client): View
     {
-        return view('clients.edit', compact('client'));
+        $employers = $this->employersForCurrentUser();
+
+        return view('clients.edit', compact('client', 'employers'));
+    }
+
+    /**
+     * Self first, then by sort_order, then name — matches the employers index.
+     */
+    private function employersForCurrentUser()
+    {
+        return auth()->user()
+            ->employers()
+            ->orderByDesc('is_self')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
     }
 
     public function update(UpdateClientRequest $request, Client $client): RedirectResponse

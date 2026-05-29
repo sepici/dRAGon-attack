@@ -19,7 +19,9 @@ class MilestonePolicy
     public function view(User $user, Milestone $milestone): bool
     {
         if ($user->isViewer()) {
-            return true;
+            return $user->grantedEmployers()
+                ->where('employer_id', $milestone->project?->client?->employer_id)
+                ->exists();
         }
         return $user->isUser() && $milestone->project->owner_id === $user->id;
     }

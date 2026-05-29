@@ -6,6 +6,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContactPersonController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliverableController;
+use App\Http\Controllers\EmployerController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PlanController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\TimesheetController;
+use App\Http\Controllers\ViewerInvitationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,6 +42,10 @@ Route::get('/', function () {
 // ---------------------------------------------------------------------------
 Route::middleware(['auth', 'role:user'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    // Employers — the layer above Client. Every user has a Self employer
+    // (auto-created); they can add more for multi-employer freelance work.
+    Route::resource('employers', EmployerController::class);
 
     // Clients + nested contact persons
     Route::resource('clients', ClientController::class);
@@ -99,7 +105,17 @@ Route::middleware(['auth', 'role:user'])->group(function () {
     // "Connect your AI" landing — copy-paste guides for ChatGPT / Claude /
     // generic HTTP clients pointed at the /api/v1 surface.
     Route::get('agent', [AgentDocsController::class, 'show'])->name('agent.show');
+
+    // Viewer invitations — share a (subset of) employers with a read-only viewer.
+    Route::get('invitations', [ViewerInvitationController::class, 'index'])->name('invitations.index');
+    Route::get('invitations/create', [ViewerInvitationController::class, 'create'])->name('invitations.create');
+    Route::post('invitations', [ViewerInvitationController::class, 'store'])->name('invitations.store');
+    Route::delete('invitations/{invitation}', [ViewerInvitationController::class, 'destroy'])->name('invitations.destroy');
 });
+
+// Public, token-gated viewer invitation acceptance — no auth middleware.
+Route::get('viewer-invitations/{token}', [ViewerInvitationController::class, 'showAccept'])->name('viewer-invitations.show');
+Route::post('viewer-invitations/{token}/accept', [ViewerInvitationController::class, 'accept'])->name('viewer-invitations.accept');
 
 // ---------------------------------------------------------------------------
 // ADMIN role — user management only.
