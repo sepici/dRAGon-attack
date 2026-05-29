@@ -1,14 +1,18 @@
 {{--
     Monthly timesheet PDF. Landscape A4. Standard month-grid layout:
-    rows = projects + ad-hoc names, cols = days 1..N, right col = row total,
-    bottom row = per-day totals, footer = "X Hours" / "Y Day(s) worked".
+    rows = (employer, project / ad-hoc) pairs, cols = days 1..N,
+    right col = row total, bottom row = per-day totals,
+    per-employer summary block below the grid (M13d), footer = totals.
 
     Inputs:
       $user, $monthStart, $monthEnd, $daysInMonth, $generatedAt,
-      $rows (array of [label, days[1..N], total]),
+      $rows (array of [employer_id, employer_name, label, days[1..N], total]),
       $dayTotals (array [1..N] => float),
       $totalHours (float),
-      $daysWorked (int)
+      $daysWorked (int),
+      $employersById (Collection<int, Employer>),
+      $employerTotals (array<int, float>),
+      $isAllEmployers (bool)
 --}}
 <!DOCTYPE html>
 <html>
@@ -40,13 +44,15 @@
         font-weight: bold;
         text-align: center;
     }
-    table.grid th.sr      { width: 20px; }
-    table.grid th.task    { width: 150px; text-align: left; padding-left: 5px; }
-    table.grid th.day     { width: 16px; font-size: 6.5pt; }
-    table.grid th.total   { width: 26px; background: #e4e4e4; }
+    table.grid th.sr       { width: 20px; }
+    table.grid th.employer { width: 76px; text-align: left; padding-left: 5px; }
+    table.grid th.task     { width: 130px; text-align: left; padding-left: 5px; }
+    table.grid th.day      { width: 15px; font-size: 6.5pt; }
+    table.grid th.total    { width: 26px; background: #e4e4e4; }
 
-    table.grid td.sr      { text-align: center; color: #555; font-size: 7pt; }
-    table.grid td.task    { text-align: left; padding-left: 5px; font-size: 7pt; }
+    table.grid td.sr       { text-align: center; color: #555; font-size: 7pt; }
+    table.grid td.employer { text-align: left; padding-left: 5px; font-size: 7pt; color: #444; }
+    table.grid td.task     { text-align: left; padding-left: 5px; font-size: 7pt; }
     table.grid td.cell    { text-align: center; font-size: 6.5pt; }
     table.grid td.empty   { background: #fafafa; }
     table.grid td.total   {
@@ -101,6 +107,7 @@
         <thead>
             <tr>
                 <th class="sr">Sr.<br>No.</th>
+                <th class="employer">Employer</th>
                 <th class="task">Task</th>
                 @for ($d = 1; $d <= $daysInMonth; $d++)
                     <th class="day">{{ $d }}</th>
@@ -112,6 +119,7 @@
             @foreach ($rows as $i => $row)
                 <tr>
                     <td class="sr">{{ $i + 1 }}</td>
+                    <td class="employer">{{ $row['employer_name'] }}</td>
                     <td class="task">{{ $row['label'] }}</td>
                     @for ($d = 1; $d <= $daysInMonth; $d++)
                         @php $v = $row['days'][$d] ?? 0; @endphp
@@ -127,7 +135,7 @@
         </tbody>
         <tfoot>
             <tr class="day-totals">
-                <td class="label" colspan="2">Daily totals</td>
+                <td class="label" colspan="3">Daily totals</td>
                 @for ($d = 1; $d <= $daysInMonth; $d++)
                     @php $v = $dayTotals[$d] ?? 0; @endphp
                     <td>{{ $v > 0 ? rtrim(rtrim(number_format($v, 1), '0'), '.') : 0 }}</td>
@@ -137,10 +145,36 @@
         </tfoot>
     </table>
 
+    {{-- Per-employer summary (M13d) --}}
+    @if (count($employerTotals) > 1)
+        <p class="summary" style="margin-bottom:4px;"><strong>Per employer</strong></p>
+        <table style="border-collapse:collapse; margin-bottom:8px;">
+            @foreach ($employersById as $empId => $emp)
+                @php
+                    $h = (float) ($employerTotals[$empId] ?? 0);
+                    if ($h == 0) continue;
+                    $d = round($h / 8.0, 1);
+                @endphp
+                <tr>
+                    <td style="padding:2px 12px 2px 0; font-size:8pt;">{{ $emp->name }}</td>
+                    <td style="padding:2px 0; font-size:8pt; text-align:right;">
+                        <strong>{{ rtrim(rtrim(number_format($h, 1), '0'), '.') }}</strong>h
+                        <span style="color:#666;">({{ rtrim(rtrim(number_format($d, 1), '0'), '.') }}d)</span>
+                    </td>
+                </tr>
+            @endforeach
+        </table>
+    @endif
+
     <p class="summary">
         <strong>{{ rtrim(rtrim(number_format($totalHours, 1), '0'), '.') }}</strong> Hours
         &nbsp;·&nbsp;
         <strong>{{ $daysWorked }}</strong> Day{{ $daysWorked === 1 ? '' : '(s)' }} worked
+        @if (! $isAllEmployers)
+            <span style="color:#666;">
+                &nbsp;·&nbsp; scope: {{ $employersById->pluck('name')->implode(', ') }}
+            </span>
+        @endif
     </p>
 @endif
 

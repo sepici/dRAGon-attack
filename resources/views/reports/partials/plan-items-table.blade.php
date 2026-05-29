@@ -58,7 +58,14 @@
                     @if ($isNoMilestoneGroup)
                         (no milestone)
                     @else
-                        {{ $m->name }} <span style="color:#666; font-weight:normal;">— {{ $m->project->name }} / {{ $m->project->client->legal_name }}</span>
+                        {{ $m->name }}
+                        <span style="color:#666; font-weight:normal;">
+                            — {{ $m->project->name }} / {{ $m->project->client->legal_name }}
+                            @php $emp = $m->project->client->employer ?? null; @endphp
+                            @if ($emp)
+                                <span style="background:#e0e7ff; color:#3730a3; padding:0 4px; border-radius:6px; font-size:7pt; margin-left:4px;">{{ $emp->name }}</span>
+                            @endif
+                        </span>
                         @if ($m->isScopeAmbiguous())
                             <span style="color:#b45309; font-size:7pt;">scope?</span>
                         @endif
@@ -84,10 +91,19 @@
 
             {{-- Deliverable rows in this group --}}
             @foreach ($rows as $item)
-                @php $d = $item->deliverable; @endphp
+                @php
+                    $d = $item->deliverable;
+                    $rowEmp = $d->project->client->employer ?? null;
+                @endphp
                 <tr>
                     <td>{{ $d->name }}</td>
-                    <td>{{ $d->project->name }}<br><span style="color:#888; font-size:8pt;">{{ $d->project->client->legal_name }}</span></td>
+                    <td>
+                        {{ $d->project->name }}<br>
+                        <span style="color:#888; font-size:8pt;">{{ $d->project->client->legal_name }}</span>
+                        @if ($rowEmp)
+                            <span style="background:#e0e7ff; color:#3730a3; padding:0 4px; border-radius:6px; font-size:7pt; margin-left:2px;">{{ $rowEmp->name }}</span>
+                        @endif
+                    </td>
                     <td class="num">{{ TimeUnits::formatDaysWithHours($d->target_hours) }}</td>
                     <td class="num">{{ TimeUnits::formatDaysWithHours($item->allocated_hours) }}</td>
                     <td class="num">{{ TimeUnits::formatHoursWithDays($item->hours_spent) }}</td>

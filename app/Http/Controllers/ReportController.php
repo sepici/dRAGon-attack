@@ -32,7 +32,16 @@ class ReportController extends Controller
 
     public function generate(): RedirectResponse
     {
-        $report = $this->service->generateWeeklyReport(auth()->user());
+        // Optional multi-employer scope. Empty = all the user's employers.
+        // Foreign ids are filtered out inside the service against the user's
+        // own employer list.
+        $employerIds = (array) request()->input('employer_ids', []);
+        $employerIds = array_map('intval', array_filter($employerIds));
+
+        $report = $this->service->generateWeeklyReport(
+            auth()->user(),
+            $employerIds ?: null,
+        );
 
         return redirect()
             ->route('reports.index')

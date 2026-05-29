@@ -3,68 +3,94 @@
 namespace App\Services;
 
 use App\Enums\PlanKind;
+use App\Models\Employer;
+use App\Models\PlanItem;
 use App\Models\PlanPeriod;
 use App\Models\Report;
 use App\Models\TimeLog;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Generates the weekly PDF report.
  *
  * Sections of the PDF:
  *   1. Review of completed week — plan_items completed in this week +
- *      ad-hoc items + total days vs weekly capacity
+ *      ad-hoc time-logs + total days vs weekly capacity
  *   2. Plan for the new week — plan_items in next week's period
  *   3. Updated 1-month plan — current monthly period items
  *   4. Updated 3-month plan — current quarterly period items
  *
  * The PDF is stored under storage/app/reports/{owner_id}/ with a filename
- * that includes the week date and a generation timestamp so multiple
- * generations of the same week don't overwrite each other.
+ * that includes the week date, a generation timestamp, and the employer
+ * scope slug when the report is scoped to a subset of the user's employers.
+ *
+ * Multi-employer (M13d): caller can pass an explicit list of employer_ids.
+ * Plan items + ad-hoc logs are filtered to those employers and each row in
+ * the rendered partial shows an employer chip.
  */
 class ReportPdfService
 {
-    public function generateWeeklyReport(User $user): Report
+    /**
+     * @param  array<int>|null  $employerIds
+     */
+    public function generateWeeklyReport(User $user, ?array $employerIds = null): Report
     {
         $now = CarbonImmutable::now();
 
-        // Current weekly period (the one we're reporting on)
-        $thisWeek = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
+        [$employerIds, $isAllEmployers] = $this->resolveEmployerScope($user, $employerIds);
 
-        // Next week's period — looked up but NOT created. If user hasn't
-        // planned next week yet, the section will just be empty.
+        $thisWeek = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Weekly);
         $nextWeekStart = CarbonImmutable::parse($thisWeek->starts_on)->addWeek();
         $nextWeek = PlanPeriod::where('owner_id', $user->id)
             ->where('kind', PlanKind::Weekly->value)
             ->whereDate('starts_on', $nextWeekStart->toDateString())
             ->first();
-
         $thisMonth = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Monthly);
         $thisQuarter = PlanPeriod::findOrCreateCurrentFor($user, PlanKind::Quarterly);
 
-        // Eager-load BOTH deliverable and milestone chains so the PDF table
-        // can group rows by milestone without N+1 queries.
         $with = [
-            'deliverable.project.client',
+            'deliverable.project.client:id,employer_id',
             'deliverable.milestone',
-            'milestone.project.client',
+            'milestone.project.client:id,employer_id',
         ];
 
-        // Hydrate derived hours_spent on every period's items (see
-        // PlanPeriod::loadHoursSpent — now handles both shapes).
-        $thisWeek->load(['items' => fn ($q) => $q->with($with)]);
+        // Load + filter items per period.
+        $thisWeek->setRelation(
+            'items',
+            $this->loadItemsForPeriod($thisWeek, $employerIds, $with),
+        );
         $thisWeek->loadHoursSpent();
-        $thisMonth->load(['items' => fn ($q) => $q->with($with)]);
+
+        $thisMonth->setRelation(
+            'items',
+            $this->loadItemsForPeriod($thisMonth, $employerIds, $with),
+        );
         $thisMonth->loadHoursSpent();
-        $thisQuarter->load(['items' => fn ($q) => $q->with($with)]);
+
+        $thisQuarter->setRelation(
+            'items',
+            $this->loadItemsForPeriod($thisQuarter, $employerIds, $with),
+        );
         $thisQuarter->loadHoursSpent();
+
         if ($nextWeek) {
-            $nextWeek->load(['items' => fn ($q) => $q->with($with)]);
+            $nextWeek->setRelation(
+                'items',
+                $this->loadItemsForPeriod($nextWeek, $employerIds, $with),
+            );
             $nextWeek->loadHoursSpent();
         }
+
+        $employersById = Employer::query()
+            ->whereIn('id', $employerIds)
+            ->orderByDesc('is_self')->orderBy('sort_order')->orderBy('name')
+            ->get()
+            ->keyBy('id');
 
         $data = [
             'user' => $user,
@@ -73,46 +99,46 @@ class ReportPdfService
             // Section 1 — the week just completed
             'thisWeek' => $thisWeek,
             'completedItems' => $thisWeek->items->whereNotNull('completed_at')->values(),
-            // Ad-hoc work this week now lives in time_logs, not plan_items.
             'adHocItems' => TimeLog::query()
                 ->where('owner_id', $user->id)
                 ->whereNull('deliverable_id')
+                ->whereIn('employer_id', $employerIds)
                 ->whereDate('log_date', '>=', $thisWeek->starts_on)
                 ->whereDate('log_date', '<=', $thisWeek->ends_on)
+                ->with('employer:id,name,is_self')
                 ->orderBy('log_date')->orderBy('id')
                 ->get(),
             'incompleteItems' => $thisWeek->items->whereNull('completed_at')->values(),
             'weekCapacity' => $thisWeek->capacity(),
             'weekTotalSpent' => $thisWeek->totalSpent(),
 
-            // Section 2 — next week's plan
             'nextWeek' => $nextWeek,
             'nextWeekItems' => $nextWeek ? $nextWeek->items : collect(),
 
-            // Section 3 — monthly
             'thisMonth' => $thisMonth,
             'monthItems' => $thisMonth->items,
             'monthCapacity' => $thisMonth->capacity(),
 
-            // Section 4 — quarterly
             'thisQuarter' => $thisQuarter,
             'quarterItems' => $thisQuarter->items,
             'quarterCapacity' => $thisQuarter->capacity(),
+
+            // Scope info for the template + partial.
+            'employersById' => $employersById,
+            'isAllEmployers' => $isAllEmployers,
         ];
 
-        // Render to PDF
         $pdf = Pdf::loadView('reports.weekly', $data);
         $pdf->setPaper('a4', 'portrait');
 
-        // Persist file. Relative path goes into the DB; absolute path is used
-        // for writing via the local disk.
+        $scopeSlug = $this->scopeSlug($employersById, $isAllEmployers);
         $relativePath = sprintf(
-            'reports/%d/week-%s-%s.pdf',
+            'reports/%d/week-%s%s-%s.pdf',
             $user->id,
             $thisWeek->starts_on->format('Y-m-d'),
+            $scopeSlug ? '-' . $scopeSlug : '',
             $now->format('YmdHis'),
         );
-
         Storage::disk('local')->put($relativePath, $pdf->output());
 
         return Report::create([
@@ -121,5 +147,52 @@ class ReportPdfService
             'generated_at' => $now,
             'file_path' => $relativePath,
         ]);
+    }
+
+    /**
+     * Resolve employer scope, mirroring TimesheetPdfService.
+     *
+     * @param  array<int>|null  $employerIds
+     * @return array{0: array<int>, 1: bool}
+     */
+    private function resolveEmployerScope(User $user, ?array $employerIds): array
+    {
+        $owned = $user->employers()->pluck('id')->all();
+        if (empty($employerIds)) {
+            return [$owned, true];
+        }
+        $intersect = array_values(array_intersect(
+            $owned,
+            array_map('intval', $employerIds),
+        ));
+        $isAll = count($intersect) === count($owned);
+        return [$intersect ?: $owned, $isAll];
+    }
+
+    /**
+     * Load a period's plan_items, scoped to the given employer ids via the
+     * deliverable→client and milestone→client chains. Items get the standard
+     * eager-load chain attached.
+     */
+    private function loadItemsForPeriod(PlanPeriod $period, array $employerIds, array $with): Collection
+    {
+        return PlanItem::query()
+            ->where('plan_period_id', $period->id)
+            ->with($with)
+            ->where(function ($q) use ($employerIds) {
+                $q->whereHas('deliverable.project.client', fn ($c) => $c->whereIn('employer_id', $employerIds))
+                  ->orWhereHas('milestone.project.client', fn ($c) => $c->whereIn('employer_id', $employerIds));
+            })
+            ->get();
+    }
+
+    private function scopeSlug(Collection $employersById, bool $isAllEmployers): string
+    {
+        if ($isAllEmployers) {
+            return '';
+        }
+        return $employersById
+            ->map(fn ($e) => Str::slug($e->name) ?: 'employer-' . $e->id)
+            ->implode('+');
     }
 }

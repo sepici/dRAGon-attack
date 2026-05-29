@@ -37,7 +37,17 @@ class TimesheetController extends Controller
         $monthInput = (string) request()->input('month', '');
         $monthStart = $this->parseMonthOrThisMonth($monthInput);
 
-        $timesheet = $this->service->generateForMonth(auth()->user(), $monthStart);
+        // Optional multi-select. Empty/missing = include every employer
+        // (the service normalises null → all). Foreign ids are filtered out
+        // inside the service against the user's own list.
+        $employerIds = (array) request()->input('employer_ids', []);
+        $employerIds = array_map('intval', array_filter($employerIds));
+
+        $timesheet = $this->service->generateForMonth(
+            auth()->user(),
+            $monthStart,
+            $employerIds ?: null,
+        );
 
         return redirect()
             ->route('timesheets.index')

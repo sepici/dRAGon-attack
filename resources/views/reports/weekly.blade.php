@@ -48,6 +48,9 @@
     Week of {{ $thisWeek->starts_on->format('d M Y') }}
     to {{ $thisWeek->ends_on->format('d M Y') }} &mdash;
     Generated {{ $generatedAt->format('d M Y H:i') }}
+    @if (! ($isAllEmployers ?? true))
+        <br>Scope: {{ $employersById->pluck('name')->implode(', ') }}
+    @endif
 </p>
 
 {{-- ============================================================== --}}
@@ -113,7 +116,12 @@
             @foreach ($adHocItems as $a)
                 <tr>
                     <td>{{ $a->log_date->format('d M') }}</td>
-                    <td>{{ $a->ad_hoc_name }}</td>
+                    <td>
+                        {{ $a->ad_hoc_name }}
+                        @if ($a->employer)
+                            <span style="background:#e0e7ff; color:#3730a3; padding:0 4px; border-radius:6px; font-size:7pt; margin-left:4px;">{{ $a->employer->name }}</span>
+                        @endif
+                    </td>
                     <td class="num">{{ TimeUnits::formatHoursWithDays($a->hours) }}</td>
                     <td>{{ $a->notes ?: '—' }}</td>
                 </tr>
