@@ -14,6 +14,15 @@ class ClientFactory extends Factory
     {
         return [
             'owner_id' => User::factory(),
+            // Default to the owner's Self employer when nothing else is
+            // specified. The closure runs after `owner_id` is resolved by
+            // Laravel's factory ordering, so we can look the user up here.
+            'employer_id' => function (array $attrs) {
+                $ownerId = $attrs['owner_id'] ?? null;
+                return $ownerId
+                    ? User::find($ownerId)?->selfEmployer()->id
+                    : null;
+            },
             'legal_name' => fake()->company(),
             'email' => fake()->companyEmail(),
             'phone' => fake()->phoneNumber(),

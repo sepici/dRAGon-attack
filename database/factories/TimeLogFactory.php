@@ -25,13 +25,25 @@ class TimeLogFactory extends Factory
         ];
     }
 
-    /** Ad-hoc log (no linked deliverable). */
+    /**
+     * Ad-hoc log (no linked deliverable). Pins employer_id to the owner's
+     * Self employer in an afterMaking callback (state callbacks run before
+     * create() args are merged, so owner_id isn't yet a resolved integer
+     * when state runs — afterMaking is the right hook for this).
+     */
     public function adHoc(string $name = 'Unplanned work'): static
     {
         return $this->state(fn () => [
             'deliverable_id' => null,
             'ad_hoc_name' => $name,
-        ]);
+        ])->afterMaking(function (\App\Models\TimeLog $log) {
+            if (! $log->employer_id && $log->owner_id) {
+                $owner = User::find($log->owner_id);
+                if ($owner) {
+                    $log->employer_id = $owner->selfEmployer()->id;
+                }
+            }
+        });
     }
 
     /** Pin the log to a specific date. */

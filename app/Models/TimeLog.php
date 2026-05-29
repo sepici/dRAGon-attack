@@ -34,6 +34,7 @@ class TimeLog extends Model
 
     protected $fillable = [
         'owner_id',
+        'employer_id',
         'log_date',
         'deliverable_id',
         'ad_hoc_name',
@@ -46,11 +47,68 @@ class TimeLog extends Model
         'hours' => 'decimal:2',
     ];
 
+    /**
+     * Auto-derive employer_id on save:
+     *
+     *   1. If the caller set it explicitly, that wins.
+     *   2. Deliverable-linked log → look up the chain
+     *      (deliverable → project → client → employer).
+     *   3. Otherwise (ad-hoc, or deliverable chain incomplete) → default
+     *      to the owner's Self employer.
+     *
+     * The journal form (M13b) still enforces explicit selection on ad-hoc
+     * rows in the UI; this observer is the safety net for API + service
+     * paths that haven't been retrofitted yet.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (TimeLog $log) {
+            if (! is_null($log->employer_id)) {
+                return;
+            }
+
+            if ($log->deliverable_id) {
+                $derived = static::deriveEmployerIdFromDeliverable($log->deliverable_id);
+                if ($derived) {
+                    $log->employer_id = $derived;
+                    return;
+                }
+            }
+
+            // Ad-hoc fallback: owner's Self.
+            if ($log->owner_id) {
+                $owner = User::find($log->owner_id);
+                if ($owner) {
+                    $log->employer_id = $owner->selfEmployer()->id;
+                    return;
+                }
+            }
+
+            throw new \LogicException(
+                'TimeLog::employer_id could not be determined: no explicit value, '
+                . 'no deliverable chain, and no owner to derive Self from.'
+            );
+        });
+    }
+
+    private static function deriveEmployerIdFromDeliverable(int $deliverableId): ?int
+    {
+        $deliverable = Deliverable::query()
+            ->with('project.client:id,employer_id')
+            ->find($deliverableId);
+        return $deliverable?->project?->client?->employer_id;
+    }
+
     // ---------- Relationships ----------------------------------------------
 
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function employer(): BelongsTo
+    {
+        return $this->belongsTo(Employer::class);
     }
 
     public function deliverable(): BelongsTo

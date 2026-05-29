@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Support\TimeUnits;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -70,9 +71,53 @@ class User extends Authenticatable
         return $this->role === UserRole::Viewer;
     }
 
+    // ---------- Lifecycle: auto-create Self on register --------------------
+    //
+    // Every user gets a "Self" employer the moment their User row is created.
+    // Self is always present, always called "Self", never deletable. It's the
+    // entity that owns a freelancer's own one-person work.
+    protected static function booted(): void
+    {
+        static::created(function (User $user) {
+            $user->employers()->firstOrCreate(
+                ['is_self' => true],
+                ['name' => 'Self', 'sort_order' => 0],
+            );
+        });
+    }
+
     // ---------- Tracker data relationships ---------------------------------
     // Each user owns their own clients/projects. Deliverables are reached
     // through projects (no direct user FK).
+
+    public function employers(): HasMany
+    {
+        return $this->hasMany(Employer::class, 'owner_id');
+    }
+
+    /**
+     * The auto-created Self employer for this user. Always exists once the
+     * `created` observer above has fired; we lazily firstOrCreate in case a
+     * future test or seeder ever bypasses model events.
+     */
+    public function selfEmployer(): Employer
+    {
+        return $this->employers()->firstOrCreate(
+            ['is_self' => true],
+            ['name' => 'Self', 'sort_order' => 0],
+        );
+    }
+
+    /**
+     * Viewer-style users get read access to specific employers via the
+     * employer_viewers join (M13c). For non-viewer users this returns an
+     * empty relation.
+     */
+    public function grantedEmployers(): BelongsToMany
+    {
+        return $this->belongsToMany(Employer::class, 'employer_viewers', 'viewer_id', 'employer_id')
+            ->withTimestamps();
+    }
 
     public function clients(): HasMany
     {
