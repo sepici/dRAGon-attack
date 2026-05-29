@@ -49,6 +49,78 @@ export function buildTools(config: ApiConfig): Tool[] {
       handler: async () => a.me(),
     },
 
+    // ---------- Employers ----------
+    // Every user has an auto-created "Self" employer (is_self=true) plus
+    // 0..N additional employers. Clients belong to a specific employer.
+    {
+      definition: {
+        name: "list_employers",
+        description:
+          "List the employers this user has. Self always appears first. Use this BEFORE create_client / update_client when the user mentions an employer name — you'll need the id.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            is_self: {
+              type: "boolean",
+              description: "Filter to just the Self employer (true) or just non-Self employers (false).",
+            },
+            page: { type: "integer", minimum: 1 },
+          },
+        },
+      },
+      handler: async (args) =>
+        a.listEmployers({
+          is_self: args.is_self as boolean | undefined,
+          page: args.page as number | undefined,
+        }),
+    },
+    {
+      definition: {
+        name: "get_employer",
+        description: "Get a single employer by id, including its clients_count.",
+        inputSchema: {
+          type: "object",
+          properties: { id: { type: "integer" } },
+          required: ["id"],
+        },
+      },
+      handler: async ({ id }) => a.getEmployer(id as number),
+    },
+    {
+      definition: {
+        name: "create_employer",
+        description:
+          "Add a new employer (an agency, an umbrella for direct-client work, etc.). The Self employer already exists and can't be duplicated — don't call this to create one.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string", maxLength: 200 },
+            sort_order: { type: "integer" },
+          },
+          required: ["name"],
+        },
+      },
+      handler: async (args) => a.createEmployer(args),
+    },
+    {
+      definition: {
+        name: "update_employer",
+        description:
+          "Patch-style update of an employer (rename or reorder). The Self employer's name is fixed — attempts to rename it will 422.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            name: { type: "string", maxLength: 200 },
+            sort_order: { type: "integer" },
+          },
+          required: ["id"],
+        },
+      },
+      handler: async ({ id, ...body }) =>
+        a.updateEmployer(id as number, body),
+    },
+
     // ---------- Clients ----------
     {
       definition: {
@@ -79,7 +151,7 @@ export function buildTools(config: ApiConfig): Tool[] {
       definition: {
         name: "create_client",
         description:
-          "Create a new client (a company the user does work for). Only legal_name is required; email, phone, and notes are optional.",
+          "Create a new client (a company the user does work for). Only legal_name is required. employer_id defaults to the user's Self employer when omitted — call list_employers first if the user mentioned a specific employer name and you need its id.",
         inputSchema: {
           type: "object",
           properties: {
@@ -87,6 +159,11 @@ export function buildTools(config: ApiConfig): Tool[] {
             email: { type: "string", format: "email" },
             phone: { type: "string", maxLength: 60 },
             notes: { type: "string" },
+            employer_id: {
+              type: "integer",
+              description:
+                "Optional. Must belong to the user. Defaults to Self when omitted.",
+            },
           },
           required: ["legal_name"],
         },
@@ -97,7 +174,7 @@ export function buildTools(config: ApiConfig): Tool[] {
       definition: {
         name: "update_client",
         description:
-          "Patch-style update of a client. Only include the fields you want to change.",
+          "Patch-style update of a client. Only include the fields you want to change. Pass employer_id to move the client to a different employer (must belong to the user).",
         inputSchema: {
           type: "object",
           properties: {
@@ -106,6 +183,7 @@ export function buildTools(config: ApiConfig): Tool[] {
             email: { type: "string", format: "email" },
             phone: { type: "string", maxLength: 60 },
             notes: { type: "string" },
+            employer_id: { type: "integer" },
           },
           required: ["id"],
         },

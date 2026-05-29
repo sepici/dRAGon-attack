@@ -46,6 +46,8 @@ class OpenApiTest extends TestCase
 
         $expected = [
             '/me',
+            '/employers',
+            '/employers/{id}',
             '/clients',
             '/clients/{id}',
             '/projects',

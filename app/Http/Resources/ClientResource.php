@@ -15,6 +15,8 @@ class ClientResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'notes' => $this->notes,
+            'employer_id' => $this->employer_id,
+            'employer' => new EmployerResource($this->whenLoaded('employer')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

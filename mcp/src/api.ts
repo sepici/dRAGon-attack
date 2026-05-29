@@ -83,6 +83,16 @@ export function api(config: ApiConfig) {
     // Account
     me: () => unwrap(request(config, "/me")),
 
+    // Employers (M13e — the entity above Client)
+    listEmployers: (q?: { is_self?: boolean; page?: number }) =>
+      request(config, "/employers", { query: q }),
+    getEmployer: (id: number) =>
+      unwrap(request(config, `/employers/${id}`)),
+    createEmployer: (body: Record<string, unknown>) =>
+      unwrap(request(config, "/employers", { method: "POST", body })),
+    updateEmployer: (id: number, body: Record<string, unknown>) =>
+      unwrap(request(config, `/employers/${id}`, { method: "PUT", body })),
+
     // Clients
     listClients: (page?: number) =>
       request(config, "/clients", { query: { page } }),

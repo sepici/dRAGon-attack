@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateClientRequest extends FormRequest
 {
@@ -18,6 +19,11 @@ class UpdateClientRequest extends FormRequest
             'email' => ['sometimes', 'nullable', 'email', 'max:200'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:60'],
             'notes' => ['sometimes', 'nullable', 'string'],
+            'employer_id' => [
+                'sometimes',
+                'integer',
+                Rule::exists('employers', 'id')->where('owner_id', $this->user()->id),
+            ],
         ];
     }
 }

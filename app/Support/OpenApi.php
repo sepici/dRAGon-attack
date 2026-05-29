@@ -83,6 +83,7 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
     {
         return [
             ['name' => 'Account', 'description' => 'Who am I?'],
+            ['name' => 'Employers', 'description' => 'The entities you do work FOR. Every user has an auto-created "Self" employer plus 0..N additional employers (e.g. agencies that hire you). Clients belong to a specific employer.'],
             ['name' => 'Clients', 'description' => 'Companies you do work for.'],
             ['name' => 'Projects', 'description' => 'Engagements with a client.'],
             ['name' => 'Milestones', 'description' => 'Optional grouping layer between a project and its deliverables. Use for phased work or forward-planning envelopes.'],
@@ -206,6 +207,31 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
                 ],
             ],
 
+            'Employer' => [
+                'type' => 'object',
+                'description' => 'An entity the user does work FOR (an agency, a direct-client umbrella, or the auto-created "Self" employer for personal work).',
+                'properties' => [
+                    'id' => ['type' => 'integer'],
+                    'name' => ['type' => 'string'],
+                    'is_self' => [
+                        'type' => 'boolean',
+                        'description' => 'True for the auto-created Self employer. Self always exists, can\'t be deleted or renamed.',
+                    ],
+                    'sort_order' => ['type' => 'integer'],
+                    'clients_count' => ['type' => 'integer'],
+                    'created_at' => ['type' => 'string', 'format' => 'date-time'],
+                    'updated_at' => ['type' => 'string', 'format' => 'date-time'],
+                ],
+            ],
+            'EmployerWrite' => [
+                'type' => 'object',
+                'required' => ['name'],
+                'properties' => [
+                    'name' => ['type' => 'string', 'maxLength' => 200],
+                    'sort_order' => ['type' => 'integer'],
+                ],
+            ],
+
             'Client' => [
                 'type' => 'object',
                 'properties' => [
@@ -214,6 +240,8 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
                     'email' => ['type' => 'string', 'nullable' => true, 'format' => 'email'],
                     'phone' => ['type' => 'string', 'nullable' => true],
                     'notes' => ['type' => 'string', 'nullable' => true],
+                    'employer_id' => ['type' => 'integer'],
+                    'employer' => ['$ref' => '#/components/schemas/Employer'],
                     'created_at' => ['type' => 'string', 'format' => 'date-time'],
                     'updated_at' => ['type' => 'string', 'format' => 'date-time'],
                 ],
@@ -226,6 +254,10 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
                     'email' => ['type' => 'string', 'nullable' => true, 'format' => 'email'],
                     'phone' => ['type' => 'string', 'nullable' => true],
                     'notes' => ['type' => 'string', 'nullable' => true],
+                    'employer_id' => [
+                        'type' => 'integer',
+                        'description' => 'Optional on create — defaults to the caller\'s Self employer when omitted. Must belong to the caller.',
+                    ],
                 ],
             ],
 
@@ -506,6 +538,7 @@ ISO `YYYY-MM-DD`, the literal strings `today` / `yesterday` /
     {
         return [
             '/me' => self::pathMe(),
+            ...self::pathsFor('employers', 'Employers', 'Employer'),
             ...self::pathsFor('clients', 'Clients', 'Client'),
             ...self::pathsFor('projects', 'Projects', 'Project'),
             ...self::pathsFor('deliverables', 'Deliverables', 'Deliverable', deliverableFilters: true),

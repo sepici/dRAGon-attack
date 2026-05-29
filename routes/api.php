@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\DeliverableController;
+use App\Http\Controllers\Api\V1\EmployerController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\MilestoneController;
 use App\Http\Controllers\Api\V1\OpenApiController;
@@ -39,6 +40,9 @@ Route::prefix('v1')
 
         // -------- Reads under tracker:read --------
         Route::middleware('abilities:tracker:read')->group(function () {
+            Route::get('/employers', [EmployerController::class, 'index'])->name('employers.index');
+            Route::get('/employers/{employer}', [EmployerController::class, 'show'])->name('employers.show');
+
             Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
             Route::get('/clients/{client}', [ClientController::class, 'show'])->name('clients.show');
 
@@ -58,6 +62,10 @@ Route::prefix('v1')
 
         // -------- Writes under tracker:write --------
         Route::middleware('abilities:tracker:write')->group(function () {
+            Route::post('/employers', [EmployerController::class, 'store'])->name('employers.store');
+            Route::put('/employers/{employer}', [EmployerController::class, 'update'])->name('employers.update');
+            Route::delete('/employers/{employer}', [EmployerController::class, 'destroy'])->name('employers.destroy');
+
             Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
             Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
             Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
