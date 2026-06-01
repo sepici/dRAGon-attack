@@ -14,10 +14,11 @@ Claude sees friendly descriptions tuned for agent use.
 
 ## What it gives Claude
 
-28 tools across:
+32 tools across:
 
 - **Account** — `whoami`
-- **Clients** — `list_clients`, `get_client`, `create_client`, `update_client`
+- **Employers** — `list_employers`, `get_employer`, `create_employer`, `update_employer` (the entity above Client; every user has an auto-created `Self` employer plus 0..N additional ones)
+- **Clients** — `list_clients`, `get_client`, `create_client`, `update_client` — both write tools accept an optional `employer_id` (defaults to the caller's Self when omitted)
 - **Projects** — `list_projects`, `get_project`, `create_project`, `update_project`
 - **Milestones** — `list_milestones`, `get_milestone`, `create_milestone`, `update_milestone`, **`mark_scope_complete`** (one-shot wrapper for the "scope is locked, you can now flip the gate to Green" moment)
 - **Deliverables** — `list_deliverables` (with fuzzy `name_like`), `get_deliverable`, `create_deliverable`, `update_deliverable` — both write tools accept an optional `milestone_id` (must belong to the same project)
@@ -25,9 +26,9 @@ Claude sees friendly descriptions tuned for agent use.
 - **Plan items** — `add_to_plan` (allocate to EITHER a deliverable OR a milestone envelope — exactly one), `update_plan_item`, `remove_from_plan`
 - **Time logs** — `list_time_logs`, **`log_time`** (the agent's bread and butter), `update_time_log`, `delete_time_log`
 
-Delete operations on clients, projects, deliverables, and milestones aren't
-exposed — those cascade in surprising ways and have no agent-side confirm
-dialog, so they stay web-only on purpose.
+Delete operations on employers, clients, projects, deliverables, and
+milestones aren't exposed — those cascade in surprising ways and have no
+agent-side confirm dialog, so they stay web-only on purpose.
 
 `log_time` accepts a fuzzy `deliverable_name` substring and a relative
 `date` (`"today"`, `"yesterday"`, natural language, or ISO), so a prompt
@@ -85,7 +86,7 @@ or `%APPDATA%\Claude\claude_desktop_config.json` (Windows). Add:
 }
 ```
 
-Quit and relaunch Claude. The hammer icon should list 28 `dragonattack` tools.
+Quit and relaunch Claude. The hammer icon should list 32 `dragonattack` tools.
 
 ### Skip-the-build dev variant
 
@@ -214,22 +215,32 @@ Once the public URL works, point Claude Desktop at it. Two ways:
 
 **B. Via the config file** (works on every version):
 
+Current Claude Desktop (1.96.x and earlier) doesn't natively parse the
+`"type": "http"` server entry — it'll silently drop the server with a
+"Some MCP servers could not be loaded" warning. Use the `mcp-remote`
+stdio bridge instead: Claude Desktop spawns it as a normal stdio server,
+and it proxies to the remote Streamable-HTTP endpoint for you.
+
 ```json
 {
   "mcpServers": {
     "dragonattack": {
-      "type": "http",
-      "url": "https://dragonattack.tr/mcp",
-      "headers": {
-        "Authorization": "Bearer 1|paste-your-token-here"
-      }
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://your-public-mcp-host/mcp",
+        "--header",
+        "Authorization: Bearer 1|paste-your-token-here"
+      ]
     }
   }
 }
 ```
 
-(`"type": "http"` is the key field — that's what tells Claude Desktop to
-connect remotely instead of spawning a subprocess.)
+Requires Node on the client machine (Claude Desktop ships with one,
+so on Mac/Windows you don't need a system install). First launch
+downloads `mcp-remote` from npm; subsequent launches reuse the cache.
 
 Quit and relaunch. Now any device with that config — your Mac, your
 laptop, your Windows PC at work — reaches the same MCP without any per-

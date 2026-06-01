@@ -110,7 +110,7 @@ Sanctum bearer tokens.
   `tracker:write`, plus `read:all` / `write:all` wildcards). Show-once
   plaintext, revocable anytime.
 - **Reference MCP server** in [`mcp/`](mcp/README.md) — TypeScript,
-  28 tools, hand-curated descriptions tuned for Claude Desktop.
+  32 tools, hand-curated descriptions tuned for Claude Desktop.
 - **In-app connection guide** at `/agent` with copy-paste snippets for
   Claude Desktop, ChatGPT Custom GPTs, and raw curl.
 

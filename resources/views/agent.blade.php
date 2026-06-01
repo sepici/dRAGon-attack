@@ -83,33 +83,39 @@
                 </p>
             </div>
 
-            {{-- Claude Desktop — remote MCP (recommended) --}}
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Claude Desktop — remote (recommended)</h3>
-                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Zero per-device install. Claude Desktop connects to the hosted MCP server over HTTPS with your API token.
-                </p>
-                <ol class="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300 list-decimal list-inside">
-                    <li>Open <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows). Add:
+            {{-- Claude Desktop — remote MCP (shown only when MCP_PUBLIC_URL is configured) --}}
+            @if (! empty($mcpPublicUrl))
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Claude Desktop — remote MCP (recommended)</h3>
+                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                        Claude Desktop connects via a tiny stdio bridge (<code>mcp-remote</code>, auto-downloaded by <code>npx</code>) that proxies to the hosted MCP server over HTTPS.
+                        Zero per-device build; same config across devices.
+                    </p>
+                    <ol class="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300 list-decimal list-inside">
+                        <li>Open <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows). Add:
 <pre class="mt-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-2 overflow-x-auto font-mono text-xs"><code>{
   "mcpServers": {
     "dragonattack": {
-      "type": "http",
-      "url": "{{ url('/mcp') }}",
-      "headers": {
-        "Authorization": "Bearer &lt;your-token-here&gt;"
-      }
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "{{ $mcpPublicUrl }}",
+        "--header",
+        "Authorization: Bearer &lt;your-token-here&gt;"
+      ]
     }
   }
 }</code></pre>
-                    </li>
-                    <li>Replace <code>&lt;your-token-here&gt;</code> with a token from <a href="{{ route('profile.edit') }}" class="text-indigo-600 dark:text-indigo-400 underline">your profile</a>.</li>
-                    <li>Quit and relaunch Claude. The hammer icon should list 28 <strong>dragonattack</strong> tools, served from the cloud.</li>
-                </ol>
-                <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    The same config works on any device. Revoke the token here to cut access instantly.
-                </p>
-            </div>
+                        </li>
+                        <li>Replace <code>&lt;your-token-here&gt;</code> with a token from <a href="{{ route('profile.edit') }}" class="text-indigo-600 dark:text-indigo-400 underline">your profile</a>.</li>
+                        <li>Quit and relaunch Claude (first launch takes ~10s while <code>npx</code> downloads <code>mcp-remote</code>). The hammer icon should list 32 <strong>dragonattack</strong> tools.</li>
+                    </ol>
+                    <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                        Revoke the token from <a href="{{ route('profile.edit') }}" class="underline">your profile</a> to cut access instantly.
+                    </p>
+                </div>
+            @endif
 
             {{-- Claude Desktop — local stdio (dev) --}}
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">

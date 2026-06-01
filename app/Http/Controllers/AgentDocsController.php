@@ -19,6 +19,11 @@ class AgentDocsController extends Controller
         return view('agent', [
             'openApiUrl' => url('/api/v1/openapi.json'),
             'apiBaseUrl' => url('/api/v1'),
+            // The Streamable-HTTP MCP server lives wherever you've hosted it
+            // (see mcp/README.md). Set MCP_PUBLIC_URL in .env to display
+            // copy-paste Claude Desktop config on this page; leave it unset
+            // to hide the "remote MCP" section.
+            'mcpPublicUrl' => env('MCP_PUBLIC_URL'),
         ]);
     }
 }
