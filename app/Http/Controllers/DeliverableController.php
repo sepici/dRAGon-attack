@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDeliverableRequest;
 use App\Http\Requests\UpdateDeliverableRequest;
+use App\Models\Client;
 use App\Models\Deliverable;
+use App\Models\Employer;
 use App\Models\Project;
+use App\Support\EmployerScopedPicker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -27,6 +30,26 @@ class DeliverableController extends Controller
     {
         $user = auth()->user();
 
+        // Filters (M15b). Each one validated against ownership — foreign IDs
+        // are silently dropped, so a stale URL never raises a 4xx, it just
+        // falls back to the unfiltered listing.
+        $employerId = $this->resolveFilterId(
+            request()->integer('employer_id') ?: null,
+            fn ($id) => Employer::query()->where('id', $id)->where('owner_id', $user->id)->exists(),
+        );
+        $clientId = $this->resolveFilterId(
+            request()->integer('client_id') ?: null,
+            fn ($id) => Client::query()->where('id', $id)->where('owner_id', $user->id)
+                ->when($employerId, fn ($q) => $q->where('employer_id', $employerId))
+                ->exists(),
+        );
+        $projectId = $this->resolveFilterId(
+            request()->integer('project_id') ?: null,
+            fn ($id) => Project::query()->where('id', $id)->where('owner_id', $user->id)
+                ->when($clientId, fn ($q) => $q->where('client_id', $clientId))
+                ->exists(),
+        );
+
         $query = Deliverable::with(['project.client', 'milestone'])
             ->withHoursSpent()
             ->orderBy('deadline')
@@ -36,9 +59,40 @@ class DeliverableController extends Controller
             $query->whereHas('project', fn ($q) => $q->where('owner_id', $user->id));
         }
 
+        // Most-specific filter wins; the others act as additional narrowing.
+        if ($projectId) {
+            $query->where('project_id', $projectId);
+        } elseif ($clientId) {
+            $query->whereHas('project', fn ($q) => $q->where('client_id', $clientId));
+        } elseif ($employerId) {
+            $query->whereHas('project.client', fn ($q) => $q->where('employer_id', $employerId));
+        }
+
         $deliverables = $query->get();
 
-        return view('deliverables.index', compact('deliverables'));
+        $picker = EmployerScopedPicker::forUser($user);
+
+        return view('deliverables.index', [
+            'deliverables' => $deliverables,
+            'picker' => $picker,
+            'filters' => [
+                'employer_id' => $employerId,
+                'client_id' => $clientId,
+                'project_id' => $projectId,
+            ],
+        ]);
+    }
+
+    /**
+     * Returns the id if the ownership check passes, else null. Lets us silently
+     * ignore foreign / stale ids in the query string instead of throwing.
+     */
+    private function resolveFilterId(?int $id, \Closure $check): ?int
+    {
+        if (! $id) {
+            return null;
+        }
+        return $check($id) ? $id : null;
     }
 
     public function create(): View
