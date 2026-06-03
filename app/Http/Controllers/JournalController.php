@@ -8,6 +8,7 @@ use App\Models\Deliverable;
 use App\Models\PlanPeriod;
 use App\Models\TimeLog;
 use App\Services\DailyJournalService;
+use App\Support\EmployerScopedPicker;
 use App\Support\TimeUnits;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -89,6 +90,17 @@ class JournalController extends Controller
         // encodes "5 days × 8h" vs "6 days × 8h" by being the total.
         $dailyTarget = TimeUnits::HOURS_PER_DAY;
 
+        // Cascading picker data (Employer → Client → Project) for the
+        // "Log time on another deliverable" widget. We add the per-project
+        // deliverable list on top — already-planned and already-logged-today
+        // deliverables are filtered out so the picker can't double-add them.
+        $picker = EmployerScopedPicker::forUser($user);
+        $picker['deliverablesByProject'] = $this->deliverablesForPicker(
+            $user,
+            collect($picker['projectsByClient'])->flatten(1)->pluck('id')->all(),
+            $planItems->pluck('deliverable_id')->merge($deliverableLogs->keys())->all(),
+        );
+
         return view('journal.show', [
             'date' => $date,
             'period' => $period,
@@ -98,10 +110,52 @@ class JournalController extends Controller
             'adHocLogs' => $adHocLogs,
             'totalHours' => $totalHours,
             'dailyTarget' => $dailyTarget,
+            'picker' => $picker,
             'prevDate' => $date->subDay()->toDateString(),
             'nextDate' => $date->addDay()->toDateString(),
             'isToday' => $date->isSameDay(CarbonImmutable::now()),
         ]);
+    }
+
+    /**
+     * Deliverables grouped by project_id, with the rows already present in
+     * this journal page (planned this week, or already logged on this date)
+     * filtered out — the picker shouldn't be able to double-add a row that
+     * the user can already see and edit.
+     *
+     * Completed deliverables are kept but flagged with is_complete=true so
+     * the view can render them muted with a "Done" badge.
+     *
+     * @param  array<int,int>  $projectIds
+     * @param  array<int,int>  $excludeIds
+     * @return array<int,array<int,array{id:int,name:string,is_complete:bool,project_id:int}>>
+     */
+    private function deliverablesForPicker(\App\Models\User $user, array $projectIds, array $excludeIds): array
+    {
+        $out = [];
+        foreach ($projectIds as $id) {
+            $out[(int) $id] = [];
+        }
+        if (empty($projectIds)) {
+            return $out;
+        }
+
+        Deliverable::query()
+            ->whereIn('project_id', $projectIds)
+            ->whereHas('project', fn ($q) => $q->where('owner_id', $user->id))
+            ->when(! empty($excludeIds), fn ($q) => $q->whereNotIn('id', $excludeIds))
+            ->orderBy('name')
+            ->get(['id', 'name', 'project_id', 'completed_at'])
+            ->each(function ($d) use (&$out) {
+                $out[(int) $d->project_id][] = [
+                    'id' => (int) $d->id,
+                    'name' => $d->name,
+                    'is_complete' => ! is_null($d->completed_at),
+                    'project_id' => (int) $d->project_id,
+                ];
+            });
+
+        return $out;
     }
 
     public function store(StoreJournalRequest $request, string $date): RedirectResponse

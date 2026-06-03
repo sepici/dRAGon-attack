@@ -206,6 +206,174 @@
                     @endif
                 </div>
 
+                {{-- Out-of-plan deliverable picker (M15a) --}}
+                @if (! empty($picker['employers']))
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg"
+                         x-data="{
+                            open: false,
+                            employers: @js($picker['employers']),
+                            clientsByEmployer: @js((object) $picker['clientsByEmployer']),
+                            projectsByClient: @js((object) $picker['projectsByClient']),
+                            deliverablesByProject: @js((object) $picker['deliverablesByProject']),
+                            employerId: '',
+                            clientId: '',
+                            projectId: '',
+                            deliverableId: '',
+                            added: [],
+                            clientOptions() { return this.employerId ? (this.clientsByEmployer[this.employerId] ?? []) : []; },
+                            projectOptions() { return this.clientId ? (this.projectsByClient[this.clientId] ?? []) : []; },
+                            deliverableOptions() {
+                                if (! this.projectId) return [];
+                                const list = this.deliverablesByProject[this.projectId] ?? [];
+                                const usedIds = new Set(this.added.map(r => r.id));
+                                return list.filter(d => ! usedIds.has(d.id));
+                            },
+                            addRow() {
+                                if (! this.deliverableId) return;
+                                const list = this.deliverablesByProject[this.projectId] ?? [];
+                                const d = list.find(x => x.id === Number(this.deliverableId));
+                                if (! d) return;
+                                const employer = this.employers.find(e => e.id === Number(this.employerId));
+                                const client = (this.clientsByEmployer[this.employerId] ?? []).find(c => c.id === Number(this.clientId));
+                                const project = (this.projectsByClient[this.clientId] ?? []).find(p => p.id === Number(this.projectId));
+                                this.added.push({
+                                    id: d.id,
+                                    name: d.name,
+                                    is_complete: d.is_complete,
+                                    employer: employer?.name ?? '',
+                                    client: client?.name ?? '',
+                                    project: project?.name ?? '',
+                                    hours: '',
+                                    notes: '',
+                                });
+                                this.deliverableId = '';
+                            },
+                            removeRow(i) { this.added.splice(i, 1); },
+                         }">
+                        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                            <div>
+                                <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Log time on another deliverable</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Pick any deliverable that isn't on this week's plan — useful when you've been pulled onto something from a future plan or a different project.
+                                </p>
+                            </div>
+                            <button type="button" @click="open = ! open" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                                <span x-show="! open">+ Pick a deliverable</span>
+                                <span x-show="open">Hide picker</span>
+                            </button>
+                        </div>
+
+                        <div x-show="open" x-cloak class="p-6 space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Employer</label>
+                                    <select x-model="employerId" @change="clientId = ''; projectId = ''; deliverableId = ''"
+                                            class="w-full text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
+                                        <option value="">— Pick employer —</option>
+                                        <template x-for="e in employers" :key="e.id">
+                                            <option :value="e.id" x-text="e.name"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Client</label>
+                                    <select x-model="clientId" @change="projectId = ''; deliverableId = ''"
+                                            :disabled="! employerId"
+                                            class="w-full text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2 disabled:opacity-50">
+                                        <option value="">— Pick client —</option>
+                                        <template x-for="c in clientOptions()" :key="c.id">
+                                            <option :value="c.id" x-text="c.name"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Project</label>
+                                    <select x-model="projectId" @change="deliverableId = ''"
+                                            :disabled="! clientId"
+                                            class="w-full text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2 disabled:opacity-50">
+                                        <option value="">— Pick project —</option>
+                                        <template x-for="p in projectOptions()" :key="p.id">
+                                            <option :value="p.id" x-text="p.name"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Deliverable</label>
+                                    <div class="flex gap-2">
+                                        <select x-model="deliverableId"
+                                                :disabled="! projectId"
+                                                class="flex-1 text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2 disabled:opacity-50">
+                                            <option value="">— Pick —</option>
+                                            <template x-for="d in deliverableOptions()" :key="d.id">
+                                                <option :value="d.id" :class="d.is_complete ? 'text-gray-400' : ''"
+                                                        x-text="d.is_complete ? d.name + ' (Done)' : d.name"></option>
+                                            </template>
+                                        </select>
+                                        <button type="button" @click="addRow()"
+                                                :disabled="! deliverableId"
+                                                class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed">
+                                            Add
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="text-xs text-gray-500 dark:text-gray-400" x-show="projectId && deliverableOptions().length === 0">
+                                Every deliverable in this project is already on your plan or already logged today.
+                            </p>
+                        </div>
+
+                        {{-- Added rows render outside the collapsible so they stay visible even after the picker is hidden. --}}
+                        <template x-if="added.length > 0">
+                            <div class="px-6 pb-6">
+                                <div class="overflow-x-auto border-t border-gray-200 dark:border-gray-700 pt-4">
+                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                        <thead class="bg-gray-50 dark:bg-gray-900/50">
+                                            <tr>
+                                                <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Added deliverable</th>
+                                                <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Client</th>
+                                                <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Hours</th>
+                                                <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
+                                                <th class="px-3 py-2"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                            <template x-for="(row, i) in added" :key="row.id">
+                                                <tr :class="row.is_complete ? 'opacity-60' : ''">
+                                                    <td class="px-3 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                        <span x-text="row.name"></span>
+                                                        <template x-if="row.is_complete">
+                                                            <span class="ml-1 inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">Done</span>
+                                                        </template>
+                                                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                            <span x-text="row.project"></span> · <span x-text="row.employer"></span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="row.client"></td>
+                                                    <td class="px-3 py-3 whitespace-nowrap text-sm text-right">
+                                                        <input type="number" :name="`items[${row.id}][hours]`" x-model="row.hours"
+                                                               step="0.5" min="0" max="24" placeholder="0"
+                                                               class="w-20 text-right text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
+                                                    </td>
+                                                    <td class="px-3 py-3 text-sm">
+                                                        <input type="text" :name="`items[${row.id}][notes]`" x-model="row.notes"
+                                                               placeholder="What you did, blockers, etc."
+                                                               class="w-full text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm py-1 px-2">
+                                                    </td>
+                                                    <td class="px-3 py-3 text-right">
+                                                        <button type="button" @click="removeRow(i)"
+                                                                class="text-xs text-red-600 dark:text-red-400 hover:underline">Remove</button>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                @endif
+
                 {{-- Ad-hoc / unplanned work --}}
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg"
                      x-data="{
